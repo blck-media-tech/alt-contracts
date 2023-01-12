@@ -334,12 +334,14 @@ describe("ASIToken", function () {
             //Setup values
             const { ASI, users } = await deployContractFixture();
 
-            //Getting balances before transaction
+            //Getting balance and totalSupply before transaction
             const creatorStartBalance = await ASI.balanceOf(users.creator.address);
+            const startTokenSupply = await ASI.totalSupply();
             const valueToBurn = creatorStartBalance.sub(1);
 
-            //Calculating expecting balance
+            //Calculating expecting balance and totalSupply
             const creatorExpectedBalance = creatorStartBalance.sub(valueToBurn);
+            const expectedTokenSupply = startTokenSupply.sub(valueToBurn);
 
             //Running transaction
             const burnTX = ASI.connect(users.creator).burn(valueToBurn);
@@ -350,12 +352,13 @@ describe("ASIToken", function () {
             //Assert transactions emit Transfer event
             await expect(burnTX).to.emit(ASI, "Transfer").withArgs(users.creator.address, ZERO_ADDRESS, valueToBurn);
 
-            //Getting balances after transactions
+            //Getting balances and totalSupply after transactions
             const creatorEndBalance = await ASI.balanceOf(users.creator.address);
+            const endTokenSupply = await ASI.totalSupply();
 
             //Asserting final with expected balances
             expect(creatorEndBalance).to.equal(creatorExpectedBalance);
-            expect(creatorEndBalance).to.equal(creatorExpectedBalance);
+            expect(endTokenSupply).to.equal(expectedTokenSupply);
         });
     });
 });
