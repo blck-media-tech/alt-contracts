@@ -2,6 +2,8 @@ const { expect } = require("chai");
 const hre = require("hardhat");
 const { BigNumber, getSigners } = hre.ethers;
 
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
 describe("ASIToken", function () {
     //Setup values
     const cap = 1_000_000;
@@ -108,6 +110,11 @@ describe("ASIToken", function () {
             //Assert transactions was successful
             await expect(transferTX).not.to.be.reverted;
 
+            //Assert transactions emit Transfer event
+            await expect(transferTX)
+                .to.emit(ASI, "Transfer")
+                .withArgs(users.creator.address, users.Alice.address, valueToTransfer);
+
             //Getting balances after transactions
             const creatorEndBalance = await ASI.balanceOf(users.creator.address);
             const AliceEndBalance = await ASI.balanceOf(users.Alice.address);
@@ -156,7 +163,10 @@ describe("ASIToken", function () {
             const expectedAllowance = startAllowance.sub(valueToDecreaseAllowance);
 
             //Running transaction
-            const decreaseAllowanceTX =  ASI.connect(users.creator).decreaseAllowance(users.Alice.address, valueToDecreaseAllowance);
+            const decreaseAllowanceTX = ASI.connect(users.creator).decreaseAllowance(
+                users.Alice.address,
+                valueToDecreaseAllowance
+            );
 
             //Assert transactions was successful
             await expect(decreaseAllowanceTX).not.to.be.reverted;
@@ -223,10 +233,19 @@ describe("ASIToken", function () {
             const AliceExpectedBalance = AliceStartBalance.add(valueToTransfer);
 
             //Running transaction
-            const transferFromTX = ASI.connect(users.Alice).transferFrom(users.creator.address, users.Alice.address, valueToTransfer);
+            const transferFromTX = ASI.connect(users.Alice).transferFrom(
+                users.creator.address,
+                users.Alice.address,
+                valueToTransfer
+            );
 
             //Assert transactions was successful
             await expect(transferFromTX).not.to.be.reverted;
+
+            //Assert transactions emit Transfer event
+            await expect(transferFromTX)
+                .to.emit(ASI, "Transfer")
+                .withArgs(users.creator.address, users.Alice.address, valueToTransfer);
 
             //Getting balances after transactions
             const creatorEndBalance = await ASI.balanceOf(users.creator.address);
@@ -268,6 +287,11 @@ describe("ASIToken", function () {
 
             //Assert transactions was successful
             await expect(burnTX).not.to.be.reverted;
+
+            //Assert transactions emit Transfer event
+            await expect(burnTX)
+                .to.emit(ASI, "Transfer")
+                .withArgs(users.creator.address, ZERO_ADDRESS, valueToBurn);
 
             //Getting balances after transactions
             const creatorEndBalance = await ASI.balanceOf(users.creator.address);
