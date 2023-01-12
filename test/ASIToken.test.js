@@ -47,6 +47,26 @@ describe("ASIToken", function () {
         await expect(ASI).to.be.revertedWith("ERC20Capped: cap exceeded");
     });
 
+    it("should have creator as an owner after deploy", async function () {
+        //Setup values
+        totalSupply = cap;
+        const [creator] = await getSigners();
+
+        //Deploy contract
+        const ASIFactory = await hre.ethers.getContractFactory("ASIToken");
+        const ASI = await ASIFactory.connect(creator).deploy(totalSupply, cap);
+
+        //Assert deploy was successful
+        await expect(ASI).not.to.be.reverted;
+        expect(!!ASI).to.equal(true);
+
+        //Get contract values
+        const ASIOwner = await ASI.owner();
+
+        //Assert contract values with passed params
+        expect(creator.address).to.equal(ASIOwner);
+    });
+
     it("should have correct values after deploying", async function () {
         //Setup values
         totalSupply = cap;
@@ -72,10 +92,8 @@ describe("ASIToken", function () {
     });
 
     describe("Token functions", function () {
-        async function deployContractFixture() {
+        async function deployContractFixture(totalSupply = 1_000_000, cap = 1_000_000) {
             //Setup values
-            const cap = 1_000_000;
-            const totalSupply = 1_000_000;
             const [creator, Alice] = await getSigners();
 
             //Deploy contract
@@ -351,6 +369,73 @@ describe("ASIToken", function () {
 
             //Assert transactions emit Transfer event
             await expect(burnTX).to.emit(ASI, "Transfer").withArgs(users.creator.address, ZERO_ADDRESS, valueToBurn);
+
+            //Getting balances and totalSupply after transactions
+            const creatorEndBalance = await ASI.balanceOf(users.creator.address);
+            const endTokenSupply = await ASI.totalSupply();
+
+            //Asserting final with expected balances
+            expect(creatorEndBalance).to.equal(creatorExpectedBalance);
+            expect(endTokenSupply).to.equal(expectedTokenSupply);
+        });
+
+        it("'mint' function should revert if called not by the owner", async function () {
+            //Setup values
+            const { ASI, users } = await deployContractFixture();
+            const valueToMint = 100;
+
+            //Running transaction
+            const mintTX = ASI.connect(users.Alice).mint(users.Alice.address, valueToMint);
+
+            //Assert transactions was reverted
+            await expect(mintTX).to.be.revertedWith("Ownable: caller is not the owner");
+        });
+
+        it("'mint' function should revert if minting over the cap", async function () {
+            //Setup values
+            const { ASI, users } = await deployContractFixture();
+            const valueToMint = 100;
+
+            //Running transaction
+            const mintTX = ASI.connect(users.creator).mint(users.creator.address, valueToMint);
+
+            //Assert transactions was reverted
+            await expect(mintTX).to.be.revertedWith("ERC20Capped: cap exceeded");
+        });
+
+        it("'mint' function should revert if minting to zero address", async function () {
+            //Setup values
+            const { ASI, users } = await deployContractFixture(500_000);
+            const valueToMint = 100;
+
+            //Running transaction
+            const mintTX = ASI.connect(users.creator).mint(ZERO_ADDRESS, valueToMint);
+
+            //Assert transactions was reverted
+            await expect(mintTX).to.be.revertedWith("ERC20: mint to the zero address");
+        });
+
+        it("'mint' function should increase balance and tokenSupply", async function () {
+            //Setup values
+            const { ASI, users } = await deployContractFixture(500_000);
+            const valueToMint = 100;
+
+            //Getting balance and totalSupply before transaction
+            const creatorStartBalance = await ASI.balanceOf(users.creator.address);
+            const startTokenSupply = await ASI.totalSupply();
+
+            //Calculating expecting balance and totalSupply
+            const creatorExpectedBalance = creatorStartBalance.add(valueToMint);
+            const expectedTokenSupply = startTokenSupply.add(valueToMint);
+
+            //Running transaction
+            const mintTX = ASI.connect(users.creator).mint(users.creator.address, valueToMint);
+
+            //Assert transactions was successful
+            await expect(mintTX).not.to.be.reverted;
+
+            //Assert transactions emit Transfer event
+            await expect(mintTX).to.emit(ASI, "Transfer").withArgs(ZERO_ADDRESS, users.creator.address, valueToMint);
 
             //Getting balances and totalSupply after transactions
             const creatorEndBalance = await ASI.balanceOf(users.creator.address);
