@@ -14,9 +14,4 @@ contract ASIToken is ERC20Capped {
     function burn(uint256 amount) public virtual {
         _burn(msg.sender, amount);
     }
-
-    function burnFrom(address account, uint256 amount) public virtual {
-        _spendAllowance(account, msg.sender, amount);
-        _burn(account, amount);
-    }
 }

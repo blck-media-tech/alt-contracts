@@ -276,51 +276,5 @@ describe("ASIToken", function () {
             expect(creatorEndBalance).to.equal(creatorExpectedBalance);
             expect(creatorEndBalance).to.equal(creatorExpectedBalance);
         });
-
-        it("'burnFrom' function should reverted if no enough allowance", async function () {
-            //Setup values
-            const { ASI, users } = await deployContractFixture();
-            const valueToBurn = 100;
-
-            //Running transaction
-            const transferFromTx = ASI.connect(users.Alice).burnFrom(
-                users.creator.address,
-                valueToBurn
-            );
-
-            //Assert transaction was reverted
-            await expect(transferFromTx).to.be.revertedWith("ERC20: insufficient allowance");
-        });
-
-        it("'burnFrom' function should burn tokens if allowance are enough", async function () {
-            //Setup values
-            const { ASI, users } = await deployContractFixture();
-            const valueToBurn = 100;
-            const valueToAllow = 100;
-
-            //Adding allowance
-            await ASI.connect(users.creator).increaseAllowance(users.Alice.address, valueToAllow);
-
-            //Getting balances before transaction
-            const creatorStartBalance = await ASI.balanceOf(users.creator.address);
-            const AliceStartBalance = await ASI.balanceOf(users.Alice.address);
-
-            //Calculating expecting balances
-            const creatorExpectedBalance = creatorStartBalance.sub(valueToBurn);
-
-            //Running transaction
-            const burnFromTX = ASI.connect(users.Alice).burnFrom(users.creator.address, valueToBurn);
-
-            //Assert transactions was successful
-            await expect(burnFromTX).not.to.be.reverted;
-
-            //Getting balances after transactions
-            const creatorEndBalance = await ASI.balanceOf(users.creator.address);
-            const AliceEndBalance = await ASI.balanceOf(users.Alice.address);
-
-            //Asserting final with expected balances
-            expect(creatorEndBalance).to.equal(creatorExpectedBalance);
-            expect(AliceEndBalance).to.equal(AliceStartBalance);
-        });
     });
 });
