@@ -141,6 +141,11 @@ describe("ASIToken", function () {
             //Assert transactions was successful
             await expect(increaseAllowanceTX).not.to.be.reverted;
 
+            //Assert transactions emit Approval event
+            await expect(increaseAllowanceTX)
+                .to.emit(ASI, "Approval")
+                .withArgs(users.creator.address, users.Alice.address, valueToAllow);
+
             //Getting allowance after transactions
             const endAllowance = await ASI.allowance(users.creator.address, users.Alice.address);
 
@@ -171,6 +176,11 @@ describe("ASIToken", function () {
             //Assert transactions was successful
             await expect(decreaseAllowanceTX).not.to.be.reverted;
 
+            //Assert transactions emit Approval event
+            await expect(decreaseAllowanceTX)
+                .to.emit(ASI, "Approval")
+                .withArgs(users.creator.address, users.Alice.address, allowanceAtStart - valueToDecreaseAllowance);
+
             //Getting allowance after transactions
             const endAllowance = await ASI.allowance(users.creator.address, users.Alice.address);
 
@@ -191,6 +201,11 @@ describe("ASIToken", function () {
 
             //Assert transactions was successful
             await expect(approveTX).not.to.be.reverted;
+
+            //Assert transactions emit Approval event
+            await expect(approveTX)
+                .to.emit(ASI, "Approval")
+                .withArgs(users.creator.address, users.Alice.address, valueToAllow);
 
             //Getting allowance after transactions
             const endAllowance = await ASI.allowance(users.creator.address, users.Alice.address);
@@ -247,6 +262,11 @@ describe("ASIToken", function () {
                 .to.emit(ASI, "Transfer")
                 .withArgs(users.creator.address, users.Alice.address, valueToTransfer);
 
+            //Assert transactions emit Approval event
+            await expect(transferFromTX)
+                .to.emit(ASI, "Approval")
+                .withArgs(users.creator.address, users.Alice.address, valueToAllow - valueToTransfer);
+
             //Getting balances after transactions
             const creatorEndBalance = await ASI.balanceOf(users.creator.address);
             const AliceEndBalance = await ASI.balanceOf(users.Alice.address);
@@ -289,9 +309,7 @@ describe("ASIToken", function () {
             await expect(burnTX).not.to.be.reverted;
 
             //Assert transactions emit Transfer event
-            await expect(burnTX)
-                .to.emit(ASI, "Transfer")
-                .withArgs(users.creator.address, ZERO_ADDRESS, valueToBurn);
+            await expect(burnTX).to.emit(ASI, "Transfer").withArgs(users.creator.address, ZERO_ADDRESS, valueToBurn);
 
             //Getting balances after transactions
             const creatorEndBalance = await ASI.balanceOf(users.creator.address);
