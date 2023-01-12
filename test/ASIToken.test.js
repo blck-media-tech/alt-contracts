@@ -91,6 +91,30 @@ describe("ASIToken", function () {
             };
         }
 
+        it("'transfer' to zero account should be reverted", async function () {
+            //Setup values
+            const { ASI, users } = await deployContractFixture();
+            const valueToTransfer = 1;
+
+            //Running transaction
+            const transferTX = ASI.connect(users.creator).transfer(ZERO_ADDRESS, valueToTransfer);
+
+            //Asserting final with expected balances
+            await expect(transferTX).to.be.revertedWith("ERC20: transfer to the zero address");
+        });
+
+        it("'transfer' function should revert if not enough tokens", async function () {
+            //Setup values
+            const { ASI, users } = await deployContractFixture();
+            const valueToTransfer = BigNumber.from(2).pow(255);
+
+            //Running transaction
+            const transferTX = ASI.connect(users.creator).transfer(users.Alice.address, valueToTransfer);
+
+            //Asserting final with expected balances
+            await expect(transferTX).to.be.revertedWith("ERC20: transfer amount exceeds balance");
+        });
+
         it("'transfer' function should correctly transfer tokens", async function () {
             //Setup values
             const { ASI, users } = await deployContractFixture();
@@ -151,6 +175,21 @@ describe("ASIToken", function () {
 
             //Asserting final with expected allowance
             expect(endAllowance).to.equal(expectedAllowance);
+        });
+
+        it("'decreaseAllowance' function should be reverted if not enough allowance", async function () {
+            //Setup values
+            const { ASI, users } = await deployContractFixture();
+            const valueToDecreaseAllowance = 100;
+
+            //Running transaction
+            const decreaseAllowanceTX = ASI.connect(users.creator).decreaseAllowance(
+                users.Alice.address,
+                valueToDecreaseAllowance
+            );
+
+            //Assert transactions was reverted
+            await expect(decreaseAllowanceTX).to.be.revertedWith("ERC20: decreased allowance below zero");
         });
 
         it("'decreaseAllowance' function should correctly decrease allowance", async function () {
