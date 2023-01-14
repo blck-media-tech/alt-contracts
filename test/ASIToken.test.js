@@ -3,6 +3,7 @@ const hre = require("hardhat");
 const { BigNumber, getSigners } = hre.ethers;
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+const EXPECTED_DECIMALS = BigNumber.from(18);
 
 describe("ASIToken", function () {
     //Setup values
@@ -19,7 +20,7 @@ describe("ASIToken", function () {
 
         //Assert deploy was successful
         await expect(ASI).not.to.be.reverted;
-        expect(!!ASI).to.equal(true);
+        expect(ASI.address).not.equal(ZERO_ADDRESS);
     });
 
     it("should be correctly deployed if total supply is equal to cap", async function () {
@@ -32,7 +33,7 @@ describe("ASIToken", function () {
 
         //Assert deploy was successful
         await expect(ASI).not.to.be.reverted;
-        expect(!!ASI).to.equal(true);
+        expect(ASI.address).not.equal(ZERO_ADDRESS);
     });
 
     it("should revert deploy if total supply is over cap", async function () {
@@ -87,7 +88,7 @@ describe("ASIToken", function () {
 
         //Assert contract values with passed params
         expect(ASITotalSupply).to.equal(BigNumber.from(totalSupply).mul(BigNumber.from(10).pow(ASIDecimals)));
-        expect(ASIDecimals).to.equal(BigNumber.from(18));
+        expect(ASIDecimals).to.equal(EXPECTED_DECIMALS);
         expect(creatorBalance).to.equal(ASITotalSupply);
     });
 
