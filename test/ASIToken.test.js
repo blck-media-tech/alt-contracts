@@ -1,9 +1,7 @@
 const { expect } = require("chai");
 const hre = require("hardhat");
 const { BigNumber, getSigners } = hre.ethers;
-
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-const EXPECTED_DECIMALS = BigNumber.from(18);
+const { ZERO_ADDRESS, DECIMALS } = require("./consts");
 
 describe("ASIToken", function () {
     //Setup values
@@ -88,7 +86,7 @@ describe("ASIToken", function () {
 
         //Assert contract values with passed params
         expect(ASITotalSupply).to.equal(BigNumber.from(totalSupply).mul(BigNumber.from(10).pow(ASIDecimals)));
-        expect(ASIDecimals).to.equal(EXPECTED_DECIMALS);
+        expect(ASIDecimals).to.equal(BigNumber.from(DECIMALS));
         expect(creatorBalance).to.equal(ASITotalSupply);
     });
 
@@ -110,341 +108,362 @@ describe("ASIToken", function () {
             };
         }
 
-        it("'transfer' to zero account should be reverted", async function () {
-            //Setup values
-            const { ASI, users } = await deployContractFixture();
-            const valueToTransfer = 1;
+        describe("'transfer' function", function () {
+            it("should be reverted if recipient is zero account", async function () {
+                //Setup values
+                const { ASI, users } = await deployContractFixture();
+                const valueToTransfer = 1;
 
-            //Running transaction
-            const transferTX = ASI.connect(users.creator).transfer(ZERO_ADDRESS, valueToTransfer);
+                //Running transaction
+                const transferTX = ASI.connect(users.creator).transfer(ZERO_ADDRESS, valueToTransfer);
 
-            //Asserting final with expected balances
-            await expect(transferTX).to.be.revertedWith("ERC20: transfer to the zero address");
+                //Asserting final with expected balances
+                await expect(transferTX).to.be.revertedWith("ERC20: transfer to the zero address");
+            });
+
+            it("should revert if not enough tokens", async function () {
+                //Setup values
+                const { ASI, users } = await deployContractFixture();
+                const valueToTransfer = BigNumber.from(2).pow(255);
+
+                //Running transaction
+                const transferTX = ASI.connect(users.creator).transfer(users.Alice.address, valueToTransfer);
+
+                //Asserting final with expected balances
+                await expect(transferTX).to.be.revertedWith("ERC20: transfer amount exceeds balance");
+            });
+
+            it("should correctly transfer tokens", async function () {
+                //Setup values
+                const { ASI, users } = await deployContractFixture();
+                const valueToTransfer = 100;
+
+                //Getting balances before transaction
+                const creatorStartBalance = await ASI.balanceOf(users.creator.address);
+                const AliceStartBalance = await ASI.balanceOf(users.Alice.address);
+
+                //Calculating expecting balances
+                const creatorExpectedBalance = creatorStartBalance.sub(valueToTransfer);
+                const AliceExpectedBalance = AliceStartBalance.add(valueToTransfer);
+
+                //Running transaction
+                const transferTX = ASI.connect(users.creator).transfer(users.Alice.address, valueToTransfer);
+
+                //Assert transactions was successful
+                await expect(transferTX).not.to.be.reverted;
+
+                //Assert transactions emit Transfer event
+                await expect(transferTX)
+                    .to.emit(ASI, "Transfer")
+                    .withArgs(users.creator.address, users.Alice.address, valueToTransfer);
+
+                //Getting balances after transactions
+                const creatorEndBalance = await ASI.balanceOf(users.creator.address);
+                const AliceEndBalance = await ASI.balanceOf(users.Alice.address);
+
+                //Asserting final with expected balances
+                expect(creatorEndBalance).to.equal(creatorExpectedBalance);
+                expect(AliceEndBalance).to.equal(AliceExpectedBalance);
+            });
         });
 
-        it("'transfer' function should revert if not enough tokens", async function () {
-            //Setup values
-            const { ASI, users } = await deployContractFixture();
-            const valueToTransfer = BigNumber.from(2).pow(255);
+        describe("'increaseAllowance' function", function () {
+            it("should correctly increase allowance", async function () {
+                //Setup values
+                const { ASI, users } = await deployContractFixture();
+                const valueToAllow = 100;
 
-            //Running transaction
-            const transferTX = ASI.connect(users.creator).transfer(users.Alice.address, valueToTransfer);
+                //Getting allowance before transaction
+                const startAllowance = await ASI.allowance(users.creator.address, users.Alice.address);
 
-            //Asserting final with expected balances
-            await expect(transferTX).to.be.revertedWith("ERC20: transfer amount exceeds balance");
+                //Calculating expecting allowance
+                const expectedAllowance = startAllowance.add(valueToAllow);
+
+                //Running transaction
+                const increaseAllowanceTX = ASI.connect(users.creator).increaseAllowance(
+                    users.Alice.address,
+                    valueToAllow
+                );
+
+                //Assert transactions was successful
+                await expect(increaseAllowanceTX).not.to.be.reverted;
+
+                //Assert transactions emit Approval event
+                await expect(increaseAllowanceTX)
+                    .to.emit(ASI, "Approval")
+                    .withArgs(users.creator.address, users.Alice.address, valueToAllow);
+
+                //Getting allowance after transactions
+                const endAllowance = await ASI.allowance(users.creator.address, users.Alice.address);
+
+                //Asserting final with expected allowance
+                expect(endAllowance).to.equal(expectedAllowance);
+            });
         });
 
-        it("'transfer' function should correctly transfer tokens", async function () {
-            //Setup values
-            const { ASI, users } = await deployContractFixture();
-            const valueToTransfer = 100;
+        describe("'decreaseAllowance' function", function () {
+            it("should be reverted if not enough allowance", async function () {
+                //Setup values
+                const { ASI, users } = await deployContractFixture();
+                const valueToDecreaseAllowance = 100;
 
-            //Getting balances before transaction
-            const creatorStartBalance = await ASI.balanceOf(users.creator.address);
-            const AliceStartBalance = await ASI.balanceOf(users.Alice.address);
+                //Running transaction
+                const decreaseAllowanceTX = ASI.connect(users.creator).decreaseAllowance(
+                    users.Alice.address,
+                    valueToDecreaseAllowance
+                );
 
-            //Calculating expecting balances
-            const creatorExpectedBalance = creatorStartBalance.sub(valueToTransfer);
-            const AliceExpectedBalance = AliceStartBalance.add(valueToTransfer);
+                //Assert transactions was reverted
+                await expect(decreaseAllowanceTX).to.be.revertedWith("ERC20: decreased allowance below zero");
+            });
 
-            //Running transaction
-            const transferTX = ASI.connect(users.creator).transfer(users.Alice.address, valueToTransfer);
+            it("should correctly decrease allowance", async function () {
+                //Setup values
+                const { ASI, users } = await deployContractFixture();
+                const allowanceAtStart = 500;
+                const valueToDecreaseAllowance = 100;
 
-            //Assert transactions was successful
-            await expect(transferTX).not.to.be.reverted;
+                await ASI.connect(users.creator).increaseAllowance(users.Alice.address, allowanceAtStart);
 
-            //Assert transactions emit Transfer event
-            await expect(transferTX)
-                .to.emit(ASI, "Transfer")
-                .withArgs(users.creator.address, users.Alice.address, valueToTransfer);
+                //Getting allowance before transaction
+                const startAllowance = await ASI.allowance(users.creator.address, users.Alice.address);
 
-            //Getting balances after transactions
-            const creatorEndBalance = await ASI.balanceOf(users.creator.address);
-            const AliceEndBalance = await ASI.balanceOf(users.Alice.address);
+                //Calculating expecting allowance
+                const expectedAllowance = startAllowance.sub(valueToDecreaseAllowance);
 
-            //Asserting final with expected balances
-            expect(creatorEndBalance).to.equal(creatorExpectedBalance);
-            expect(AliceEndBalance).to.equal(AliceExpectedBalance);
+                //Running transaction
+                const decreaseAllowanceTX = ASI.connect(users.creator).decreaseAllowance(
+                    users.Alice.address,
+                    valueToDecreaseAllowance
+                );
+
+                //Assert transactions was successful
+                await expect(decreaseAllowanceTX).not.to.be.reverted;
+
+                //Assert transactions emit Approval event
+                await expect(decreaseAllowanceTX)
+                    .to.emit(ASI, "Approval")
+                    .withArgs(users.creator.address, users.Alice.address, allowanceAtStart - valueToDecreaseAllowance);
+
+                //Getting allowance after transactions
+                const endAllowance = await ASI.allowance(users.creator.address, users.Alice.address);
+
+                //Asserting final with expected allowance
+                expect(endAllowance).to.equal(expectedAllowance);
+            });
         });
 
-        it("'increaseAllowance' function should correctly increase allowance", async function () {
-            //Setup values
-            const { ASI, users } = await deployContractFixture();
-            const valueToAllow = 100;
+        describe("'approve' function", function () {
+            it("should correctly set allowance to specific value", async function () {
+                //Setup values
+                const { ASI, users } = await deployContractFixture();
+                const valueToAllow = 100;
 
-            //Getting allowance before transaction
-            const startAllowance = await ASI.allowance(users.creator.address, users.Alice.address);
+                //Adding starting allowance
+                await ASI.connect(users.creator).increaseAllowance(users.Alice.address, 50);
 
-            //Calculating expecting allowance
-            const expectedAllowance = startAllowance.add(valueToAllow);
+                //Running transaction
+                const approveTX = ASI.connect(users.creator).approve(users.Alice.address, valueToAllow);
 
-            //Running transaction
-            const increaseAllowanceTX = ASI.connect(users.creator).increaseAllowance(users.Alice.address, valueToAllow);
+                //Assert transactions was successful
+                await expect(approveTX).not.to.be.reverted;
 
-            //Assert transactions was successful
-            await expect(increaseAllowanceTX).not.to.be.reverted;
+                //Assert transactions emit Approval event
+                await expect(approveTX)
+                    .to.emit(ASI, "Approval")
+                    .withArgs(users.creator.address, users.Alice.address, valueToAllow);
 
-            //Assert transactions emit Approval event
-            await expect(increaseAllowanceTX)
-                .to.emit(ASI, "Approval")
-                .withArgs(users.creator.address, users.Alice.address, valueToAllow);
+                //Getting allowance after transactions
+                const endAllowance = await ASI.allowance(users.creator.address, users.Alice.address);
 
-            //Getting allowance after transactions
-            const endAllowance = await ASI.allowance(users.creator.address, users.Alice.address);
-
-            //Asserting final with expected allowance
-            expect(endAllowance).to.equal(expectedAllowance);
+                //Asserting final with expected allowance
+                expect(endAllowance).to.equal(BigNumber.from(valueToAllow));
+            });
         });
 
-        it("'decreaseAllowance' function should be reverted if not enough allowance", async function () {
-            //Setup values
-            const { ASI, users } = await deployContractFixture();
-            const valueToDecreaseAllowance = 100;
+        describe("'transferFrom' function", function () {
+            it("should reverted if no enough allowance", async function () {
+                //Setup values
+                const { ASI, users } = await deployContractFixture();
+                const valueToTransfer = 100;
 
-            //Running transaction
-            const decreaseAllowanceTX = ASI.connect(users.creator).decreaseAllowance(
-                users.Alice.address,
-                valueToDecreaseAllowance
-            );
+                //Running transaction
+                const transferFromTx = ASI.connect(users.Alice).transferFrom(
+                    users.creator.address,
+                    users.Alice.address,
+                    valueToTransfer
+                );
 
-            //Assert transactions was reverted
-            await expect(decreaseAllowanceTX).to.be.revertedWith("ERC20: decreased allowance below zero");
+                //Assert transaction was reverted
+                await expect(transferFromTx).to.be.revertedWith("ERC20: insufficient allowance");
+            });
+
+            it("should transfer tokens if allowance are enough", async function () {
+                //Setup values
+                const { ASI, users } = await deployContractFixture();
+                const valueToTransfer = 100;
+                const valueToAllow = 100;
+
+                //Adding allowance
+                await ASI.connect(users.creator).increaseAllowance(users.Alice.address, valueToAllow);
+
+                //Getting balances before transaction
+                const creatorStartBalance = await ASI.balanceOf(users.creator.address);
+                const AliceStartBalance = await ASI.balanceOf(users.Alice.address);
+
+                //Calculating expecting balances
+                const creatorExpectedBalance = creatorStartBalance.sub(valueToTransfer);
+                const AliceExpectedBalance = AliceStartBalance.add(valueToTransfer);
+
+                //Running transaction
+                const transferFromTX = ASI.connect(users.Alice).transferFrom(
+                    users.creator.address,
+                    users.Alice.address,
+                    valueToTransfer
+                );
+
+                //Assert transactions was successful
+                await expect(transferFromTX).not.to.be.reverted;
+
+                //Assert transactions emit Transfer event
+                await expect(transferFromTX)
+                    .to.emit(ASI, "Transfer")
+                    .withArgs(users.creator.address, users.Alice.address, valueToTransfer);
+
+                //Assert transactions emit Approval event
+                await expect(transferFromTX)
+                    .to.emit(ASI, "Approval")
+                    .withArgs(users.creator.address, users.Alice.address, valueToAllow - valueToTransfer);
+
+                //Getting balances after transactions
+                const creatorEndBalance = await ASI.balanceOf(users.creator.address);
+                const AliceEndBalance = await ASI.balanceOf(users.Alice.address);
+
+                //Asserting final with expected balances
+                expect(creatorEndBalance).to.equal(creatorExpectedBalance);
+                expect(AliceEndBalance).to.equal(AliceExpectedBalance);
+            });
         });
 
-        it("'decreaseAllowance' function should correctly decrease allowance", async function () {
-            //Setup values
-            const { ASI, users } = await deployContractFixture();
-            const allowanceAtStart = 500;
-            const valueToDecreaseAllowance = 100;
+        describe("'burn' function", function () {
+            it("should revert if not enough tokens", async function () {
+                //Setup values
+                const { ASI, users } = await deployContractFixture();
 
-            await ASI.connect(users.creator).increaseAllowance(users.Alice.address, allowanceAtStart);
+                //Getting balances before transaction
+                const creatorStartBalance = await ASI.balanceOf(users.creator.address);
+                const valueToBurn = creatorStartBalance.add(1);
 
-            //Getting allowance before transaction
-            const startAllowance = await ASI.allowance(users.creator.address, users.Alice.address);
+                //Running transaction
+                const burnTX = ASI.connect(users.Alice).burn(valueToBurn);
 
-            //Calculating expecting allowance
-            const expectedAllowance = startAllowance.sub(valueToDecreaseAllowance);
+                //Asserting final with expected balances
+                await expect(burnTX).to.be.revertedWith("ERC20: burn amount exceeds balance");
+            });
 
-            //Running transaction
-            const decreaseAllowanceTX = ASI.connect(users.creator).decreaseAllowance(
-                users.Alice.address,
-                valueToDecreaseAllowance
-            );
+            it("should decrease balance and tokenSupply", async function () {
+                //Setup values
+                const { ASI, users } = await deployContractFixture();
 
-            //Assert transactions was successful
-            await expect(decreaseAllowanceTX).not.to.be.reverted;
+                //Getting balance and totalSupply before transaction
+                const creatorStartBalance = await ASI.balanceOf(users.creator.address);
+                const startTokenSupply = await ASI.totalSupply();
+                const valueToBurn = creatorStartBalance.sub(1);
 
-            //Assert transactions emit Approval event
-            await expect(decreaseAllowanceTX)
-                .to.emit(ASI, "Approval")
-                .withArgs(users.creator.address, users.Alice.address, allowanceAtStart - valueToDecreaseAllowance);
+                //Calculating expecting balance and totalSupply
+                const creatorExpectedBalance = creatorStartBalance.sub(valueToBurn);
+                const expectedTokenSupply = startTokenSupply.sub(valueToBurn);
 
-            //Getting allowance after transactions
-            const endAllowance = await ASI.allowance(users.creator.address, users.Alice.address);
+                //Running transaction
+                const burnTX = ASI.connect(users.creator).burn(valueToBurn);
 
-            //Asserting final with expected allowance
-            expect(endAllowance).to.equal(expectedAllowance);
+                //Assert transactions was successful
+                await expect(burnTX).not.to.be.reverted;
+
+                //Assert transactions emit Transfer event
+                await expect(burnTX)
+                    .to.emit(ASI, "Transfer")
+                    .withArgs(users.creator.address, ZERO_ADDRESS, valueToBurn);
+
+                //Getting balances and totalSupply after transactions
+                const creatorEndBalance = await ASI.balanceOf(users.creator.address);
+                const endTokenSupply = await ASI.totalSupply();
+
+                //Asserting final with expected balances
+                expect(creatorEndBalance).to.equal(creatorExpectedBalance);
+                expect(endTokenSupply).to.equal(expectedTokenSupply);
+            });
         });
 
-        it("'approve' function should correctly set allowance to specific value", async function () {
-            //Setup values
-            const { ASI, users } = await deployContractFixture();
-            const valueToAllow = 100;
+        describe("'mint' function", function () {
+            it("should revert if called not by the owner", async function () {
+                //Setup values
+                const { ASI, users } = await deployContractFixture();
+                const valueToMint = 100;
 
-            //Adding starting allowance
-            await ASI.connect(users.creator).increaseAllowance(users.Alice.address, 50);
+                //Running transaction
+                const mintTX = ASI.connect(users.Alice).mint(users.Alice.address, valueToMint);
 
-            //Running transaction
-            const approveTX = ASI.connect(users.creator).approve(users.Alice.address, valueToAllow);
+                //Assert transactions was reverted
+                await expect(mintTX).to.be.revertedWith("Ownable: caller is not the owner");
+            });
 
-            //Assert transactions was successful
-            await expect(approveTX).not.to.be.reverted;
+            it("should revert if minting over the cap", async function () {
+                //Setup values
+                const { ASI, users } = await deployContractFixture();
+                const valueToMint = 100;
 
-            //Assert transactions emit Approval event
-            await expect(approveTX)
-                .to.emit(ASI, "Approval")
-                .withArgs(users.creator.address, users.Alice.address, valueToAllow);
+                //Running transaction
+                const mintTX = ASI.connect(users.creator).mint(users.creator.address, valueToMint);
 
-            //Getting allowance after transactions
-            const endAllowance = await ASI.allowance(users.creator.address, users.Alice.address);
+                //Assert transactions was reverted
+                await expect(mintTX).to.be.revertedWith("ERC20Capped: cap exceeded");
+            });
 
-            //Asserting final with expected allowance
-            expect(endAllowance).to.equal(BigNumber.from(valueToAllow));
-        });
+            it("should revert if minting to zero address", async function () {
+                //Setup values
+                const { ASI, users } = await deployContractFixture(500_000);
+                const valueToMint = 100;
 
-        it("'transferFrom' function should reverted if no enough allowance", async function () {
-            //Setup values
-            const { ASI, users } = await deployContractFixture();
-            const valueToTransfer = 100;
+                //Running transaction
+                const mintTX = ASI.connect(users.creator).mint(ZERO_ADDRESS, valueToMint);
 
-            //Running transaction
-            const transferFromTx = ASI.connect(users.Alice).transferFrom(
-                users.creator.address,
-                users.Alice.address,
-                valueToTransfer
-            );
+                //Assert transactions was reverted
+                await expect(mintTX).to.be.revertedWith("ERC20: mint to the zero address");
+            });
 
-            //Assert transaction was reverted
-            await expect(transferFromTx).to.be.revertedWith("ERC20: insufficient allowance");
-        });
+            it("should increase balance and tokenSupply", async function () {
+                //Setup values
+                const { ASI, users } = await deployContractFixture(500_000);
+                const valueToMint = 100;
 
-        it("'transferFrom' function should transfer tokens if allowance are enough", async function () {
-            //Setup values
-            const { ASI, users } = await deployContractFixture();
-            const valueToTransfer = 100;
-            const valueToAllow = 100;
+                //Getting balance and totalSupply before transaction
+                const creatorStartBalance = await ASI.balanceOf(users.creator.address);
+                const startTokenSupply = await ASI.totalSupply();
 
-            //Adding allowance
-            await ASI.connect(users.creator).increaseAllowance(users.Alice.address, valueToAllow);
+                //Calculating expecting balance and totalSupply
+                const creatorExpectedBalance = creatorStartBalance.add(valueToMint);
+                const expectedTokenSupply = startTokenSupply.add(valueToMint);
 
-            //Getting balances before transaction
-            const creatorStartBalance = await ASI.balanceOf(users.creator.address);
-            const AliceStartBalance = await ASI.balanceOf(users.Alice.address);
+                //Running transaction
+                const mintTX = ASI.connect(users.creator).mint(users.creator.address, valueToMint);
 
-            //Calculating expecting balances
-            const creatorExpectedBalance = creatorStartBalance.sub(valueToTransfer);
-            const AliceExpectedBalance = AliceStartBalance.add(valueToTransfer);
+                //Assert transactions was successful
+                await expect(mintTX).not.to.be.reverted;
 
-            //Running transaction
-            const transferFromTX = ASI.connect(users.Alice).transferFrom(
-                users.creator.address,
-                users.Alice.address,
-                valueToTransfer
-            );
+                //Assert transactions emit Transfer event
+                await expect(mintTX)
+                    .to.emit(ASI, "Transfer")
+                    .withArgs(ZERO_ADDRESS, users.creator.address, valueToMint);
 
-            //Assert transactions was successful
-            await expect(transferFromTX).not.to.be.reverted;
+                //Getting balances and totalSupply after transactions
+                const creatorEndBalance = await ASI.balanceOf(users.creator.address);
+                const endTokenSupply = await ASI.totalSupply();
 
-            //Assert transactions emit Transfer event
-            await expect(transferFromTX)
-                .to.emit(ASI, "Transfer")
-                .withArgs(users.creator.address, users.Alice.address, valueToTransfer);
-
-            //Assert transactions emit Approval event
-            await expect(transferFromTX)
-                .to.emit(ASI, "Approval")
-                .withArgs(users.creator.address, users.Alice.address, valueToAllow - valueToTransfer);
-
-            //Getting balances after transactions
-            const creatorEndBalance = await ASI.balanceOf(users.creator.address);
-            const AliceEndBalance = await ASI.balanceOf(users.Alice.address);
-
-            //Asserting final with expected balances
-            expect(creatorEndBalance).to.equal(creatorExpectedBalance);
-            expect(AliceEndBalance).to.equal(AliceExpectedBalance);
-        });
-
-        it("'burn' function should revert if not enough tokens", async function () {
-            //Setup values
-            const { ASI, users } = await deployContractFixture();
-
-            //Getting balances before transaction
-            const creatorStartBalance = await ASI.balanceOf(users.creator.address);
-            const valueToBurn = creatorStartBalance.add(1);
-
-            //Running transaction
-            const burnTX = ASI.connect(users.Alice).burn(valueToBurn);
-
-            //Asserting final with expected balances
-            await expect(burnTX).to.be.revertedWith("ERC20: burn amount exceeds balance");
-        });
-
-        it("'burn' function should decrease balance and tokenSupply", async function () {
-            //Setup values
-            const { ASI, users } = await deployContractFixture();
-
-            //Getting balance and totalSupply before transaction
-            const creatorStartBalance = await ASI.balanceOf(users.creator.address);
-            const startTokenSupply = await ASI.totalSupply();
-            const valueToBurn = creatorStartBalance.sub(1);
-
-            //Calculating expecting balance and totalSupply
-            const creatorExpectedBalance = creatorStartBalance.sub(valueToBurn);
-            const expectedTokenSupply = startTokenSupply.sub(valueToBurn);
-
-            //Running transaction
-            const burnTX = ASI.connect(users.creator).burn(valueToBurn);
-
-            //Assert transactions was successful
-            await expect(burnTX).not.to.be.reverted;
-
-            //Assert transactions emit Transfer event
-            await expect(burnTX).to.emit(ASI, "Transfer").withArgs(users.creator.address, ZERO_ADDRESS, valueToBurn);
-
-            //Getting balances and totalSupply after transactions
-            const creatorEndBalance = await ASI.balanceOf(users.creator.address);
-            const endTokenSupply = await ASI.totalSupply();
-
-            //Asserting final with expected balances
-            expect(creatorEndBalance).to.equal(creatorExpectedBalance);
-            expect(endTokenSupply).to.equal(expectedTokenSupply);
-        });
-
-        it("'mint' function should revert if called not by the owner", async function () {
-            //Setup values
-            const { ASI, users } = await deployContractFixture();
-            const valueToMint = 100;
-
-            //Running transaction
-            const mintTX = ASI.connect(users.Alice).mint(users.Alice.address, valueToMint);
-
-            //Assert transactions was reverted
-            await expect(mintTX).to.be.revertedWith("Ownable: caller is not the owner");
-        });
-
-        it("'mint' function should revert if minting over the cap", async function () {
-            //Setup values
-            const { ASI, users } = await deployContractFixture();
-            const valueToMint = 100;
-
-            //Running transaction
-            const mintTX = ASI.connect(users.creator).mint(users.creator.address, valueToMint);
-
-            //Assert transactions was reverted
-            await expect(mintTX).to.be.revertedWith("ERC20Capped: cap exceeded");
-        });
-
-        it("'mint' function should revert if minting to zero address", async function () {
-            //Setup values
-            const { ASI, users } = await deployContractFixture(500_000);
-            const valueToMint = 100;
-
-            //Running transaction
-            const mintTX = ASI.connect(users.creator).mint(ZERO_ADDRESS, valueToMint);
-
-            //Assert transactions was reverted
-            await expect(mintTX).to.be.revertedWith("ERC20: mint to the zero address");
-        });
-
-        it("'mint' function should increase balance and tokenSupply", async function () {
-            //Setup values
-            const { ASI, users } = await deployContractFixture(500_000);
-            const valueToMint = 100;
-
-            //Getting balance and totalSupply before transaction
-            const creatorStartBalance = await ASI.balanceOf(users.creator.address);
-            const startTokenSupply = await ASI.totalSupply();
-
-            //Calculating expecting balance and totalSupply
-            const creatorExpectedBalance = creatorStartBalance.add(valueToMint);
-            const expectedTokenSupply = startTokenSupply.add(valueToMint);
-
-            //Running transaction
-            const mintTX = ASI.connect(users.creator).mint(users.creator.address, valueToMint);
-
-            //Assert transactions was successful
-            await expect(mintTX).not.to.be.reverted;
-
-            //Assert transactions emit Transfer event
-            await expect(mintTX).to.emit(ASI, "Transfer").withArgs(ZERO_ADDRESS, users.creator.address, valueToMint);
-
-            //Getting balances and totalSupply after transactions
-            const creatorEndBalance = await ASI.balanceOf(users.creator.address);
-            const endTokenSupply = await ASI.totalSupply();
-
-            //Asserting final with expected balances
-            expect(creatorEndBalance).to.equal(creatorExpectedBalance);
-            expect(endTokenSupply).to.equal(expectedTokenSupply);
+                //Asserting final with expected balances
+                expect(creatorEndBalance).to.equal(creatorExpectedBalance);
+                expect(endTokenSupply).to.equal(expectedTokenSupply);
+            });
         });
     });
 });
