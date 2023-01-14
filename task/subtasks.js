@@ -33,7 +33,7 @@ subtask("deploymentError", "Notifies about deployment error").setAction(async (t
     console.log(`❌ Message: ${taskArgs.message}`);
 });
 
-subtask("verification", "Notifies about deployment error").setAction(async (taskArgs, hre) => {
+subtask("verification", "Verifies specified contract").setAction(async (taskArgs, hre) => {
     console.log(`\n\n🔍 Verifying ${taskArgs.contract} contract...`);
     try {
         await hre.run("verify:verify", {
