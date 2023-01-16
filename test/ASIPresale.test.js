@@ -348,5 +348,53 @@ describe("ASIPresale", function () {
                 await expect(pauseTx).to.be.revertedWith("Pausable: paused");
             });
         });
+
+        describe("'unpause' function", function () {
+            it("should unpause contract if called by the owner", async function () {
+                //Set values
+                const { presale, users } = await deployPresaleFixture();
+
+                //Preliminarily pause contract
+                await presale.connect(users.presaleOwner).pause();
+
+                //Get paused status before transaction
+                const pauseStatusBefore = await presale.paused();
+
+                //Unpause contract
+                const pauseTx = presale.connect(users.presaleOwner).unpause();
+
+                //Assert transaction was successful
+                await expect(pauseTx).not.to.be.reverted;
+
+                //Get paused status after transaction
+                const pauseStatusAfter = await presale.paused();
+
+                //Assert transaction results
+                expect(pauseStatusBefore).to.equal(true);
+                expect(pauseStatusAfter).to.equal(false);
+            });
+
+            it("should revert if called not by the owner", async function () {
+                //Set values
+                const { presale } = await deployPresaleFixture();
+
+                //Pause contract
+                const pauseTx = presale.unpause();
+
+                //Assert transaction is reverted
+                await expect(pauseTx).to.be.revertedWith("Ownable: caller is not the owner");
+            });
+
+            it("should revert if contract already unpaused", async function () {
+                //Set values
+                const { presale, users } = await deployPresaleFixture();
+
+                //Unpause contract
+                const unpauseTx = presale.connect(users.presaleOwner).unpause();
+
+                //Assert transaction is reverted
+                await expect(unpauseTx).to.be.revertedWith("Pausable: not paused");
+            });
+        });
     });
 });
