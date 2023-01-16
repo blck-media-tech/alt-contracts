@@ -6,12 +6,23 @@ module.exports = {
     mocha: {
         timeout: 5000,
     },
+    etherscan: {
+        apiKey: process.env.ETHERSCAN_API_KEY,
+    },
     forking: {
         url: "https://eth.llamarpc.com",
     },
-    network: {
+    networks: {
         hardhat: {
             url: "http://127.0.0.1:8545/"
-        }
-    }
+        },
+        testnet: {
+            accounts: [process.env.DEPLOYER_PRIVATE_KEY],
+            url: "https://goerli.infura.io/v3/",
+        },
+        mainnet: {
+            accounts: [process.env.DEPLOYER_PRIVATE_KEY],
+            url: "https://eth.llamarpc.com",
+        },
+    },
 };
