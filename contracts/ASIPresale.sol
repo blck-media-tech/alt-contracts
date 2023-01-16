@@ -93,6 +93,7 @@ contract ASIPresale is Initializable, Pausable, Ownable, ReentrancyGuard {
     {
         require(_oracle != address(0), "Zero aggregator address");
         require(_usdt != address(0), "Zero USDT address");
+        require(_saleToken != address(0), "Zero sale token address");
         saleToken = _saleToken;
         require(
             _saleStartTime > block.timestamp && _saleEndTime > _saleStartTime,
@@ -297,7 +298,7 @@ contract ASIPresale is Initializable, Pausable, Ownable, ReentrancyGuard {
     view
     returns (uint256 ethAmount)
     {
-        ethAmount = _calculateInternalCost(amount) * 10**18  / getLatestPrice();
+        ethAmount = _calculateInternalCost(amount) * 1e18  / getLatestPrice();
     }
 
     function calculateUSDTPrice(uint256 amount)
