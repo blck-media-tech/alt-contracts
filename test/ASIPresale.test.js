@@ -253,4 +253,100 @@ describe("ASIPresale", function () {
         expect(presaleUSDTToken).to.equal(USDT.address);
         expect(presaleOracle).to.equal(oracleAddress);
     });
+
+    describe("Token functions", function () {
+        async function deployPresaleFixture() {
+            //setup values
+            const saleStartTime = Math.floor(new Date().getTime() / 1000) + DAY_IN_SECONDS;
+            const saleEndTime = Math.floor(new Date().getTime() / 1000) + DAY_IN_SECONDS * 2;
+            const stageAmount = [
+                BigNumber.from("40000000"),
+                BigNumber.from("102500000"),
+                BigNumber.from("175000000"),
+                BigNumber.from("250000000"),
+            ];
+            const stagePrice = [
+                BigNumber.from("15000000000000000"),
+                BigNumber.from("18750000000000000"),
+                BigNumber.from("21010000000000000"),
+                BigNumber.from("22740000000000000"),
+            ];
+
+            const [creator, presaleOwner, Alice] = await getSigners();
+
+            //Deploy necessary contracts
+            const ASI = await deployASITokenFixture(creator);
+            const USDT = await deployUSDTStubFixture(creator);
+
+            //Deploy presale contract
+            const presaleFactory = await hre.ethers.getContractFactory("ASIPresale");
+            const presale = await presaleFactory
+                .connect(creator)
+                .deploy(ASI.address, oracleAddress, USDT.address, saleStartTime, saleEndTime, stageAmount, stagePrice);
+
+            //Transfer presale contract ownership to specified address
+            await presale.transferOwnership(presaleOwner.address);
+
+            return {
+                USDT,
+                ASI,
+                presale,
+                saleStartTime,
+                saleEndTime,
+                users: {
+                    creator,
+                    presaleOwner,
+                    Alice,
+                },
+            };
+        }
+
+        describe("'pause' function", function () {
+            it("should pause contract if called by the owner", async function () {
+                //Set values
+                const { presale, users } = await deployPresaleFixture();
+
+                //Get paused status before transaction
+                const pauseStatusBefore = await presale.paused();
+
+                //Pause contract
+                const pauseTx = presale.connect(users.presaleOwner).pause();
+
+                //Assert transaction was successful
+                await expect(pauseTx).not.to.be.reverted;
+
+                //Get paused status after transaction
+                const pauseStatusAfter = await presale.paused();
+
+                //Assert transaction results
+                expect(pauseStatusBefore).to.equal(false);
+                expect(pauseStatusAfter).to.equal(true);
+            });
+
+            it("should revert if called not by the owner", async function () {
+                //Set values
+                const { presale } = await deployPresaleFixture();
+
+                //Pause contract
+                const pauseTx = presale.pause();
+
+                //Assert transaction is reverted
+                await expect(pauseTx).to.be.revertedWith("Ownable: caller is not the owner");
+            });
+
+            it("should revert if contract already paused", async function () {
+                //Set values
+                const { presale, users } = await deployPresaleFixture();
+
+                //Preliminarily pause contract
+                await presale.connect(users.presaleOwner).pause();
+
+                //Pause contract
+                const pauseTx = presale.connect(users.presaleOwner).pause();
+
+                //Assert transaction is reverted
+                await expect(pauseTx).to.be.revertedWith("Pausable: paused");
+            });
+        });
+    });
 });
