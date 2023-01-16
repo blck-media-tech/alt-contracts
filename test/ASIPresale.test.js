@@ -459,5 +459,68 @@ describe("ASIPresale", function () {
                     .withArgs(saleStartTimeBefore.add(saleStartTimeModifier));
             });
         });
+
+        describe("'changeSaleEndTime' function", function () {
+            it("should set sales start time", async function () {
+                //Set values
+                const { presale, users } = await deployPresaleFixture();
+
+                const saleEndTimeModifier = DAY_IN_SECONDS;
+
+                //Get sale end time before transaction
+                const saleEndTimeBefore = await presale.saleEndTime();
+
+                //Change sale end time
+                const changeSaleEndTimeTx = presale
+                    .connect(users.presaleOwner)
+                    .changeSaleEndTime(saleEndTimeBefore.add(saleEndTimeModifier));
+
+                //Assert transaction was successful
+                await expect(changeSaleEndTimeTx).not.to.be.reverted;
+
+                //Get sale end time after transaction
+                const saleEndTimeAfter = await presale.saleEndTime();
+
+                //Assert sale end time after transaction with expected
+                expect(saleEndTimeAfter).to.equal(saleEndTimeBefore.add(saleEndTimeModifier));
+            });
+
+            it("should revert if called not by the owner", async function () {
+                //Set values
+                const { presale } = await deployPresaleFixture();
+
+                //Change sale start time
+                const changeSaleEndTimeTx = presale.changeSaleEndTime(0);
+
+                //Assert transaction is reverted
+                await expect(changeSaleEndTimeTx).to.be.revertedWith("Ownable: caller is not the owner");
+            });
+
+            it("should emit SaleStartTimeUpdated event", async function () {
+                //Set values
+                const { presale, users } = await deployPresaleFixture();
+
+                const saleStartTimeModifier = DAY_IN_SECONDS;
+
+                //Get sales start time before transaction
+                const saleStartTimeBefore = await presale.saleStartTime();
+
+                //Change sale start time
+                const changeSaleStartTimeTx = presale
+                    .connect(users.presaleOwner)
+                    .changeSaleStartTime(saleStartTimeBefore.add(saleStartTimeModifier));
+
+                //Assert transaction was successful
+                await expect(changeSaleStartTimeTx).not.to.be.reverted;
+
+                //Get sales start time after transaction
+                const saleStartTimeAfter = await presale.saleStartTime();
+
+                //Assert transaction results
+                expect(saleStartTimeAfter)
+                    .to.emit(presale, "SaleEndTimeUpdated")
+                    .withArgs(saleStartTimeBefore.add(saleStartTimeModifier));
+            });
+        });
     });
 });
