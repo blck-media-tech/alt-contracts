@@ -94,12 +94,12 @@ contract ASIPresale is Initializable, Pausable, Ownable, ReentrancyGuard {
         require(_oracle != address(0), "Zero aggregator address");
         require(_usdt != address(0), "Zero USDT address");
         require(_saleToken != address(0), "Zero sale token address");
-        saleToken = _saleToken;
         require(
             _saleStartTime > block.timestamp && _saleEndTime > _saleStartTime,
             "Invalid time"
         );
 
+        saleToken = _saleToken;
         oracle = ChainlinkPriceFeed(_oracle);
         USDTToken = IERC20(_usdt);
         stageAmount = _stageAmount;
