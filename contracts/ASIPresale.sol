@@ -164,7 +164,7 @@ contract ASIPresale is Initializable, Pausable, Ownable, ReentrancyGuard {
         require(_claimStartTime > saleEndTime && _claimStartTime > block.timestamp, "Invalid claim start time");
         require(amount >= totalTokensSold, "Tokens less than sold");
         require(claimStartTime == 0, "Claim already set");
-        require(IERC20(saleToken).balanceOf(address(this)) < 0, "Not enough balance");
+        require(IERC20(saleToken).balanceOf(address(this)) >= amount, "Not enough balance");
         claimStartTime = _claimStartTime;
         emit ClaimStartTimeUpdated(
             _claimStartTime,
