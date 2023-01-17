@@ -1024,5 +1024,143 @@ describe("ASIPresale", function () {
                     .withArgs(users.creator.address, "ETH", tokensToPurchase, USDTPrice, weiPrice);
             });
         });
+
+        describe("'buyWithUSDT' function", function () {
+            it("should increase purchased tokens amount and transfer payment to owner", async function () {
+                //Set values
+                const { presale, users, saleStartTime, ASI, USDT } = await deployPresaleFixture();
+                const tokensToPurchase = 1000;
+
+                //Timeshift to sale period
+                await timeTravelFixture(saleStartTime + 1);
+
+                //Get usdt price
+                const USDTPrice = await presale.calculateUSDTPrice(tokensToPurchase);
+
+                //Add allowance to contract
+                await USDT.connect(users.creator).increaseAllowance(presale.address, USDTPrice);
+
+                //Get values before transaction
+                const purchaseTokensAmountBefore = await presale.purchasedTokens(users.creator.address);
+                const USDTAmountBefore = await USDT.balanceOf(users.presaleOwner.address);
+
+                //Buy with USDT
+                const buyWithUSDTTx = presale.connect(users.creator).buyWithUSDT(tokensToPurchase);
+
+                //Assert transaction was successful
+                await expect(buyWithUSDTTx).not.to.be.reverted;
+
+                //Get values after transaction
+                const purchaseTokensAmountAfter = await presale.purchasedTokens(users.creator.address);
+                const USDTAmountAfter = await USDT.balanceOf(users.presaleOwner.address);
+                const decimals = await ASI.decimals();
+
+                //Assert total sold price with expected
+                expect(purchaseTokensAmountAfter).to.equal(
+                    purchaseTokensAmountBefore.add(BigNumber.from(10).pow(decimals).mul(tokensToPurchase))
+                );
+                expect(USDTAmountAfter).to.equal(USDTAmountBefore.add(USDTPrice));
+            });
+
+            it("should revert if trying to buy before sales start", async function () {
+                //Set values
+                const { presale, users, USDT } = await deployPresaleFixture();
+                const tokensToPurchase = 1000;
+
+                //Get usdt price
+                const USDTPrice = await presale.calculateUSDTPrice(tokensToPurchase);
+
+                //Add allowance to contract
+                await USDT.connect(users.creator).increaseAllowance(presale.address, USDTPrice);
+
+                //Buy with USDT
+                const buyWithUSDTTx = presale.connect(users.creator).buyWithUSDT(tokensToPurchase);
+
+                //Assert transaction was reverted
+                await expect(buyWithUSDTTx).to.be.revertedWith("Invalid time for buying");
+            });
+
+            it("should revert if not enough allowance", async function () {
+                //Set values
+                const { presale, users, saleStartTime } = await deployPresaleFixture();
+                const tokensToPurchase = 1000;
+
+                //Timeshift to sale period
+                await timeTravelFixture(saleStartTime + 1);
+
+                //Buy with USDT
+                const buyWithUSDTTx = presale.connect(users.creator).buyWithUSDT(tokensToPurchase);
+
+                //Assert transaction was reverted
+                await expect(buyWithUSDTTx).to.be.revertedWith("Make sure to add enough allowance");
+            });
+
+            it("should revert if try to buy more tokens than presale limit", async function () {
+                //Set values
+                const { presale, users, saleStartTime, stageAmount, USDT } = await deployPresaleFixture();
+                const tokensToPurchase = stageAmount[stageAmount.length - 1];
+
+                //Timeshift to sale period
+                await timeTravelFixture(saleStartTime + 1);
+
+                //Get usdt price
+                const USDTPrice = await presale.calculateUSDTPrice(tokensToPurchase);
+
+                //Add allowance to contract
+                await USDT.connect(users.creator).increaseAllowance(presale.address, USDTPrice);
+
+                //Buy with USDT
+                const buyWithUSDTTx = presale.connect(users.creator).buyWithUSDT(tokensToPurchase);
+
+                //Assert transaction was reverted
+                await expect(buyWithUSDTTx).to.be.revertedWith("Invalid amount: pre-sale limit exceeded");
+            });
+
+            it("should revert if try to buy 0 tokens", async function () {
+                //Set values
+                const { presale, users, saleStartTime, USDT } = await deployPresaleFixture();
+                const tokensToPurchase = 0;
+
+                //Timeshift to sale period
+                await timeTravelFixture(saleStartTime + 1);
+
+                //Get usdt price
+                const USDTPrice = await presale.calculateUSDTPrice(tokensToPurchase);
+
+                //Add allowance to contract
+                await USDT.connect(users.creator).increaseAllowance(presale.address, USDTPrice);
+
+                //Buy with USDT
+                const buyWithUSDTTx = presale.connect(users.creator).buyWithUSDT(tokensToPurchase);
+
+                //Assert transaction was reverted
+                await expect(buyWithUSDTTx).to.be.revertedWith("Invalid amount: you should buy at least one token");
+            });
+
+            it("should emit TokensBought event", async function () {
+                //Set values
+                const { presale, users, saleStartTime, USDT } = await deployPresaleFixture();
+                const tokensToPurchase = 1000;
+
+                //Timeshift to sale period
+                await timeTravelFixture(saleStartTime + 1);
+
+                //Get usdt price
+                const USDTPrice = await presale.calculateUSDTPrice(tokensToPurchase);
+
+                //Add allowance to contract
+                await USDT.connect(users.creator).increaseAllowance(presale.address, USDTPrice);
+
+                //Buy with USDT
+                const buyWithUSDTTx = presale.connect(users.creator).buyWithUSDT(tokensToPurchase);
+
+                //Assert transaction was successful
+                await expect(buyWithUSDTTx).not.to.be.reverted;
+
+                expect(await buyWithUSDTTx)
+                    .to.emit(presale, "TokensBought")
+                    .withArgs(users.creator.address, "USDT", tokensToPurchase, USDTPrice, USDTPrice);
+            });
+        });
     });
 });
