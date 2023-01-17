@@ -1392,5 +1392,25 @@ describe("ASIPresale", function () {
                 expect(await calculateWeiPriceTx).to.equal(expectedPrice);
             });
         });
+
+        describe("'calculateUSDTPrice' function", function () {
+            it("should calculate correct USDT price", async function () {
+                //Set values
+                const { presale, stagePrice } = await deployPresaleFixture();
+                const tokensToPurchase = 1000;
+
+                //calculate expected price
+                const expectedPrice = stagePrice[0].mul(tokensToPurchase).div(BigNumber.from(10).pow(12));
+
+                //Calculate USDT price
+                const calculateUSDTPriceTx = presale.calculateUSDTPrice(tokensToPurchase);
+
+                //Assert transaction was successful
+                await expect(calculateUSDTPriceTx).not.to.be.reverted;
+
+                //Assert price with expected
+                expect(await calculateUSDTPriceTx).to.equal(expectedPrice);
+            });
+        });
     });
 });
