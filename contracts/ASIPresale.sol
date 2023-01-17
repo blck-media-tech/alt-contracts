@@ -28,8 +28,8 @@ contract ASIPresale is Initializable, Pausable, Ownable, ReentrancyGuard {
     uint256 public saleStartTime;
     uint256 public saleEndTime;
 
-    uint256[4] stageAmount;
-    uint256[4] stagePrice;
+    uint256[4] public stageAmount;
+    uint256[4] public stagePrice;
     uint8 constant maxStageIndex = 3;
     uint8 public currentStage;
 
@@ -86,11 +86,7 @@ contract ASIPresale is Initializable, Pausable, Ownable, ReentrancyGuard {
         uint256 _saleEndTime,
         uint256[4] memory _stageAmount,
         uint256[4] memory _stagePrice
-    )
-    Ownable()
-    ReentrancyGuard()
-    Pausable()
-    {
+    ) Ownable() ReentrancyGuard() Pausable() {
         require(_oracle != address(0), "Zero aggregator address");
         require(_usdt != address(0), "Zero USDT address");
         require(_saleToken != address(0), "Zero sale token address");
@@ -118,24 +114,15 @@ contract ASIPresale is Initializable, Pausable, Ownable, ReentrancyGuard {
         );
     }
 
-    function pause()
-    external
-    onlyOwner
-    {
+    function pause() external onlyOwner {
         _pause();
     }
 
-    function unpause()
-    external
-    onlyOwner
-    {
+    function unpause() external onlyOwner {
         _unpause();
     }
 
-    function changeSaleStartTime(uint256 _saleStartTime)
-    external
-    onlyOwner
-    {
+    function changeSaleStartTime(uint256 _saleStartTime) external onlyOwner {
         saleStartTime = _saleStartTime;
         emit SaleStartTimeUpdated(
             _saleStartTime,
@@ -143,10 +130,7 @@ contract ASIPresale is Initializable, Pausable, Ownable, ReentrancyGuard {
         );
     }
 
-    function changeSaleEndTime(uint256 _saleEndTime)
-    external
-    onlyOwner
-    {
+    function changeSaleEndTime(uint256 _saleEndTime) external onlyOwner {
         saleEndTime = _saleEndTime;
         emit SaleEndTimeUpdated(
             _saleEndTime,
@@ -157,10 +141,7 @@ contract ASIPresale is Initializable, Pausable, Ownable, ReentrancyGuard {
     function startClaim(
         uint256 _claimStartTime,
         uint256 amount
-    )
-    external
-    onlyOwner
-    {
+    ) external onlyOwner {
         require(_claimStartTime > saleEndTime && _claimStartTime > block.timestamp, "Invalid claim start time");
         require(amount >= totalTokensSold, "Tokens less than sold");
         require(claimStartTime == 0, "Claim already set");
@@ -172,11 +153,7 @@ contract ASIPresale is Initializable, Pausable, Ownable, ReentrancyGuard {
         );
     }
 
-    function changeClaimStartTime(uint256 _claimStartTime)
-    external
-    onlyOwner
-    returns (bool)
-    {
+    function changeClaimStartTime(uint256 _claimStartTime) external onlyOwner returns (bool) {
         require(claimStartTime > 0, "Initial claim data not set");
         require(_claimStartTime > saleEndTime, "Sale in progress");
         claimStartTime = _claimStartTime;
@@ -187,37 +164,24 @@ contract ASIPresale is Initializable, Pausable, Ownable, ReentrancyGuard {
         return true;
     }
 
-    function getCurrentPrice()
-    external
-    view
-    returns (uint256)
-    {
+    function getCurrentPrice() external view returns (uint256) {
         return stagePrice[currentStage];
     }
 
-    function getTotalPresaleAmount()
-    external
-    view
-    returns (uint256)
-    {
+    function getSoldOnCurrentStage() external view returns (uint256 soldOnCurrentStage) {
+        if (stage == 0 ) soldOnCurrentStage = totalTokensSold;
+        else soldOnCurrentStage = totalTokensSold - stageAmount[currentStage];
+    }
+
+    function getTotalPresaleAmount() external view returns (uint256) {
         return stageAmount[maxStageIndex];
     }
 
-    function totalSoldPrice()
-    external
-    view
-    returns (uint256)
-    {
+    function totalSoldPrice() external view returns (uint256) {
         return _calculateInternalCostForConditions(totalTokensSold, 0 ,0);
     }
 
-    function buyWithEth(uint256 amount)
-    external
-    payable
-    checkSaleState(amount)
-    whenNotPaused
-    nonReentrant
-    {
+    function buyWithEth(uint256 amount) external payable checkSaleState(amount) whenNotPaused nonReentrant {
         uint256 weiAmount = calculateWeiPrice(amount);
         require(msg.value >= weiAmount, "Not enough wei");
         _sendValue(payable(owner()), weiAmount);
@@ -237,12 +201,7 @@ contract ASIPresale is Initializable, Pausable, Ownable, ReentrancyGuard {
         );
     }
 
-    function buyWithUSDT(uint256 amount)
-    external
-    checkSaleState(amount)
-    whenNotPaused
-    nonReentrant
-    {
+    function buyWithUSDT(uint256 amount) external checkSaleState(amount) whenNotPaused nonReentrant {
         uint256 usdtPrice = calculateUSDTPrice(amount);
         uint256 allowance = USDTToken.allowance(
             _msgSender(),
@@ -272,10 +231,7 @@ contract ASIPresale is Initializable, Pausable, Ownable, ReentrancyGuard {
         );
     }
 
-    function claim()
-    external
-    whenNotPaused
-    {
+    function claim() external whenNotPaused {
         require(block.timestamp >= claimStartTime && claimStartTime > 0, "Claim has not started yet");
         uint256 amount = purchasedTokens[_msgSender()];
         require(amount > 0, "Nothing to claim");
@@ -284,53 +240,31 @@ contract ASIPresale is Initializable, Pausable, Ownable, ReentrancyGuard {
         emit TokensClaimed(_msgSender(), amount, block.timestamp);
     }
 
-    function getLatestPrice()
-    public
-    view
-    returns (uint256)
-    {
+    function getLatestPrice() public view returns (uint256) {
         (, int256 price, , ,) = oracle.latestRoundData();
         return uint256(price * 1e10);
     }
 
-    function calculateWeiPrice(uint256 amount)
-    public
-    view
-    returns (uint256 ethAmount)
-    {
+    function calculateWeiPrice(uint256 amount) public view returns (uint256 ethAmount) {
         ethAmount = _calculateInternalCost(amount) * 1e18  / getLatestPrice();
     }
 
-    function calculateUSDTPrice(uint256 amount)
-    public
-    view
-    returns (uint256 usdtPrice)
-    {
+    function calculateUSDTPrice(uint256 amount) public view returns (uint256 usdtPrice) {
         usdtPrice = _calculateInternalCost(amount) / 1e12;
     }
 
-    function _calculateInternalCost(uint256 _amount)
-    internal
-    view
-    returns (uint256)
-    {
+    function _calculateInternalCost(uint256 _amount) internal view returns (uint256) {
         require(_amount + totalTokensSold <= stageAmount[maxStageIndex], "Invalid amount: pre-sale limit exceeded");
         return _calculateInternalCostForConditions(_amount, currentStage, totalTokensSold);
     }
 
-    function _sendValue(address payable recipient, uint256 amount)
-    internal
-    {
+    function _sendValue(address payable recipient, uint256 amount) internal {
         require(address(this).balance >= amount, "Low balance");
         (bool success,) = recipient.call{value : amount}("");
         require(success, "ETH Payment failed");
     }
 
-    function _calculateInternalCostForConditions(uint256 _amount, uint256 _currentStage, uint256 _totalTokensSold)
-    internal
-    view
-    returns (uint256 cost)
-    {
+    function _calculateInternalCostForConditions(uint256 _amount, uint256 _currentStage, uint256 _totalTokensSold) internal view returns (uint256 cost){
         if (_totalTokensSold + _amount <= stageAmount[_currentStage]) {
             cost = _amount * stagePrice[_currentStage];
         }
@@ -343,11 +277,7 @@ contract ASIPresale is Initializable, Pausable, Ownable, ReentrancyGuard {
         return cost;
     }
 
-    function _getStageByTotalSoldAmount()
-    internal
-    view
-    returns (uint8)
-    {
+    function _getStageByTotalSoldAmount() internal view returns (uint8) {
         uint8 stageIndex = maxStageIndex;
         while (stageIndex > 0) {
             if (stageAmount[stageIndex - 1] < totalTokensSold) break;
