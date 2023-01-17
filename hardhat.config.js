@@ -9,13 +9,8 @@ module.exports = {
     etherscan: {
         apiKey: process.env.ETHERSCAN_API_KEY,
     },
-    forking: {
-        url: "https://eth.llamarpc.com",
-    },
     networks: {
-        hardhat: {
-            url: "http://127.0.0.1:8545/"
-        },
+        hardhat: {},
         testnet: {
             accounts: [process.env.DEPLOYER_PRIVATE_KEY],
             url: "https://goerli.infura.io/v3/",

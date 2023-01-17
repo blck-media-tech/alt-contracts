@@ -5,7 +5,6 @@ const { ZERO_ADDRESS, DAY_IN_SECONDS } = require("./consts");
 
 describe("ASIPresale", function () {
     //setup values
-    const oracleAddress = "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419";
     const stageAmount = [
         BigNumber.from("40000000"),
         BigNumber.from("102500000"),
@@ -29,6 +28,11 @@ describe("ASIPresale", function () {
         return await USDTFactory.connect(creator).deploy(500000000);
     }
 
+    async function deployChainlinkPriceFeedStubFixture(creator) {
+        const ChainlinkPriceFeedFactory = await hre.ethers.getContractFactory("ChainlinkPriceFeedStub");
+        return await ChainlinkPriceFeedFactory.connect(creator).deploy();
+    }
+
     it("should be correctly deployed", async function () {
         //setup values
         const saleStartTime = Math.floor(new Date().getTime() / 1000) + DAY_IN_SECONDS;
@@ -39,12 +43,21 @@ describe("ASIPresale", function () {
         //Deploy necessary contracts
         const ASI = await deployASITokenFixture(creator);
         const USDT = await deployUSDTStubFixture(creator);
+        const ChainlinkPriceFeed = await deployChainlinkPriceFeedStubFixture(creator);
 
         //Deploy contract
         const presaleFactory = await hre.ethers.getContractFactory("ASIPresale");
         const presale = presaleFactory
             .connect(creator)
-            .deploy(ASI.address, oracleAddress, USDT.address, saleStartTime, saleEndTime, stageAmount, stagePrice);
+            .deploy(
+                ASI.address,
+                ChainlinkPriceFeed.address,
+                USDT.address,
+                saleStartTime,
+                saleEndTime,
+                stageAmount,
+                stagePrice
+            );
 
         //Assert deploy was successful
         await expect(presale).not.to.be.reverted;
@@ -81,12 +94,21 @@ describe("ASIPresale", function () {
 
         //Deploy necessary contracts
         const ASI = await deployASITokenFixture(creator);
+        const ChainlinkPriceFeed = await deployChainlinkPriceFeedStubFixture(creator);
 
         //Deploy contract
         const presaleFactory = await hre.ethers.getContractFactory("ASIPresale");
         const presale = presaleFactory
             .connect(creator)
-            .deploy(ASI.address, oracleAddress, ZERO_ADDRESS, saleStartTime, saleEndTime, stageAmount, stagePrice);
+            .deploy(
+                ASI.address,
+                ChainlinkPriceFeed.address,
+                ZERO_ADDRESS,
+                saleStartTime,
+                saleEndTime,
+                stageAmount,
+                stagePrice
+            );
 
         //Assert was reverted
         await expect(presale).to.be.rejectedWith("Zero USDT address");
@@ -101,12 +123,21 @@ describe("ASIPresale", function () {
 
         //Deploy necessary contracts
         const USDT = await deployUSDTStubFixture(creator);
+        const ChainlinkPriceFeed = await deployChainlinkPriceFeedStubFixture(creator);
 
         //Deploy contract
         const presaleFactory = await hre.ethers.getContractFactory("ASIPresale");
         const presale = presaleFactory
             .connect(creator)
-            .deploy(ZERO_ADDRESS, oracleAddress, USDT.address, saleStartTime, saleEndTime, stageAmount, stagePrice);
+            .deploy(
+                ZERO_ADDRESS,
+                ChainlinkPriceFeed.address,
+                USDT.address,
+                saleStartTime,
+                saleEndTime,
+                stageAmount,
+                stagePrice
+            );
 
         //Assert was reverted
         await expect(presale).to.be.rejectedWith("Zero sale token address");
@@ -122,12 +153,21 @@ describe("ASIPresale", function () {
         //Deploy necessary contracts
         const ASI = await deployASITokenFixture(creator);
         const USDT = await deployUSDTStubFixture(creator);
+        const ChainlinkPriceFeed = await deployChainlinkPriceFeedStubFixture(creator);
 
         //Deploy contract
         const presaleFactory = await hre.ethers.getContractFactory("ASIPresale");
         const presale = presaleFactory
             .connect(creator)
-            .deploy(ASI.address, oracleAddress, USDT.address, saleStartTime, saleEndTime, stageAmount, stagePrice);
+            .deploy(
+                ASI.address,
+                ChainlinkPriceFeed.address,
+                USDT.address,
+                saleStartTime,
+                saleEndTime,
+                stageAmount,
+                stagePrice
+            );
 
         //Assert was reverted
         await expect(presale).to.be.rejectedWith("Invalid time");
@@ -143,12 +183,21 @@ describe("ASIPresale", function () {
         //Deploy necessary contracts
         const ASI = await deployASITokenFixture(creator);
         const USDT = await deployUSDTStubFixture(creator);
+        const ChainlinkPriceFeed = await deployChainlinkPriceFeedStubFixture(creator);
 
         //Deploy contract
         const presaleFactory = await hre.ethers.getContractFactory("ASIPresale");
         const presale = presaleFactory
             .connect(creator)
-            .deploy(ASI.address, oracleAddress, USDT.address, saleStartTime, saleEndTime, stageAmount, stagePrice);
+            .deploy(
+                ASI.address,
+                ChainlinkPriceFeed.address,
+                USDT.address,
+                saleStartTime,
+                saleEndTime,
+                stageAmount,
+                stagePrice
+            );
 
         //Assert was reverted
         await expect(presale).to.be.rejectedWith("Invalid time");
@@ -164,12 +213,21 @@ describe("ASIPresale", function () {
         //Deploy necessary contracts
         const ASI = await deployASITokenFixture(creator);
         const USDT = await deployUSDTStubFixture(creator);
+        const ChainlinkPriceFeed = await deployChainlinkPriceFeedStubFixture(creator);
 
         //Deploy contract
         const presaleFactory = await hre.ethers.getContractFactory("ASIPresale");
         const presale = presaleFactory
             .connect(creator)
-            .deploy(ASI.address, oracleAddress, USDT.address, saleStartTime, saleEndTime, stageAmount, stagePrice);
+            .deploy(
+                ASI.address,
+                ChainlinkPriceFeed.address,
+                USDT.address,
+                saleStartTime,
+                saleEndTime,
+                stageAmount,
+                stagePrice
+            );
 
         //Assert deploy was successful
         await expect(presale).not.to.be.reverted;
@@ -191,12 +249,21 @@ describe("ASIPresale", function () {
         //Deploy necessary contracts
         const ASI = await deployASITokenFixture(creator);
         const USDT = await deployUSDTStubFixture(creator);
+        const ChainlinkPriceFeed = await deployChainlinkPriceFeedStubFixture(creator);
 
         //Deploy contract
         const presaleFactory = await hre.ethers.getContractFactory("ASIPresale");
         const presale = presaleFactory
             .connect(creator)
-            .deploy(ASI.address, oracleAddress, USDT.address, saleStartTime, saleEndTime, stageAmount, stagePrice);
+            .deploy(
+                ASI.address,
+                ChainlinkPriceFeed.address,
+                USDT.address,
+                saleStartTime,
+                saleEndTime,
+                stageAmount,
+                stagePrice
+            );
 
         //Assert deploy was successful
         await expect(presale).not.to.be.reverted;
@@ -218,12 +285,21 @@ describe("ASIPresale", function () {
         //Deploy necessary contracts
         const ASI = await deployASITokenFixture(creator);
         const USDT = await deployUSDTStubFixture(creator);
+        const ChainlinkPriceFeed = await deployChainlinkPriceFeedStubFixture(creator);
 
         //Deploy contract
         const presaleFactory = await hre.ethers.getContractFactory("ASIPresale");
         const presaleTx = presaleFactory
             .connect(creator)
-            .deploy(ASI.address, oracleAddress, USDT.address, saleStartTime, saleEndTime, stageAmount, stagePrice);
+            .deploy(
+                ASI.address,
+                ChainlinkPriceFeed.address,
+                USDT.address,
+                saleStartTime,
+                saleEndTime,
+                stageAmount,
+                stagePrice
+            );
 
         //Assert deploy was successful
         await expect(presaleTx).not.to.be.reverted;
@@ -251,7 +327,7 @@ describe("ASIPresale", function () {
         expect(presaleSaleEndTime).to.equal(saleEndTime);
         expect(presaleCurrentStage).to.equal(0);
         expect(presaleUSDTToken).to.equal(USDT.address);
-        expect(presaleOracle).to.equal(oracleAddress);
+        expect(presaleOracle).to.equal(ChainlinkPriceFeed.address);
     });
 
     describe("Token functions", function () {
@@ -278,12 +354,21 @@ describe("ASIPresale", function () {
             //Deploy necessary contracts
             const ASI = await deployASITokenFixture(creator);
             const USDT = await deployUSDTStubFixture(creator);
+            const ChainlinkPriceFeed = await deployChainlinkPriceFeedStubFixture(creator);
 
             //Deploy presale contract
             const presaleFactory = await hre.ethers.getContractFactory("ASIPresale");
             const presale = await presaleFactory
                 .connect(creator)
-                .deploy(ASI.address, oracleAddress, USDT.address, saleStartTime, saleEndTime, stageAmount, stagePrice);
+                .deploy(
+                    ASI.address,
+                    ChainlinkPriceFeed.address,
+                    USDT.address,
+                    saleStartTime,
+                    saleEndTime,
+                    stageAmount,
+                    stagePrice
+                );
 
             //Transfer presale contract ownership to specified address
             await presale.transferOwnership(presaleOwner.address);
