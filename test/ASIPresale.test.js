@@ -1172,5 +1172,202 @@ describe("ASIPresale", function () {
                     .withArgs(users.creator.address, "USDT", tokensToPurchase, USDTPrice, USDTPrice);
             });
         });
+
+        describe("'claim' function", function () {
+            it("should increase purchased tokens amount and transfer payment to owner", async function () {
+                //Set values
+                const { presale, users, saleStartTime, saleEndTime, ASI } = await deployPresaleFixture();
+                const tokensToPurchase = 1000;
+                const claimStartTime = saleEndTime + 1;
+
+                //Timeshift to sale period
+                await timeTravelFixture(saleStartTime + 1);
+
+                //Start claim
+                await startClaimFixture(
+                    presale,
+                    ASI,
+                    users.creator,
+                    users.presaleOwner,
+                    claimStartTime,
+                    tokensToPurchase
+                );
+
+                //Purchase some tokens
+                await purchaseTokensFixture(presale, users.creator, tokensToPurchase);
+
+                //Get values before transaction
+                const purchaseTokensAmountBefore = await presale.purchasedTokens(users.creator.address);
+                const tokenBalanceBefore = await ASI.balanceOf(users.creator.address);
+
+                //Timeshift to claim period
+                await timeTravelFixture(claimStartTime + 1);
+
+                //Claim tokens
+                const claimTx = presale.connect(users.creator).claim();
+
+                //Assert transaction was successful
+                await expect(claimTx).not.to.be.reverted;
+
+                //Get values after transaction
+                const purchaseTokensAmountAfter = await presale.purchasedTokens(users.creator.address);
+                const tokenBalanceAfter = await ASI.balanceOf(users.creator.address);
+                const decimals = await ASI.decimals();
+
+                //Assert values with expected
+                expect(purchaseTokensAmountAfter).to.equal(
+                    purchaseTokensAmountBefore.sub(BigNumber.from(10).pow(decimals).mul(tokensToPurchase))
+                );
+                expect(tokenBalanceAfter).to.equal(
+                    tokenBalanceBefore.add(BigNumber.from(10).pow(decimals).mul(tokensToPurchase))
+                );
+            });
+
+            it("should revert if called before claim start time", async function () {
+                //Set values
+                const { presale, users, saleStartTime, saleEndTime, ASI } = await deployPresaleFixture();
+                const tokensToPurchase = 1000;
+                const claimStartTime = saleEndTime + 1;
+
+                //Timeshift to sale period
+                await timeTravelFixture(saleStartTime + 1);
+
+                //Start claim
+                await startClaimFixture(
+                    presale,
+                    ASI,
+                    users.creator,
+                    users.presaleOwner,
+                    claimStartTime,
+                    tokensToPurchase
+                );
+
+                //Purchase some tokens
+                await purchaseTokensFixture(presale, users.creator, tokensToPurchase);
+
+                //Claim tokens
+                const claimTx = presale.connect(users.creator).claim();
+
+                //Assert transaction was reverted
+                await expect(claimTx).to.be.revertedWith("Claim has not started yet");
+            });
+
+            it("should revert if claim start time is not set", async function () {
+                //Set values
+                const { presale, users, saleStartTime } = await deployPresaleFixture();
+                const tokensToPurchase = 1000;
+
+                //Timeshift to sale period
+                await timeTravelFixture(saleStartTime + 1);
+
+                //Purchase some tokens
+                await purchaseTokensFixture(presale, users.creator, tokensToPurchase);
+
+                //Claim tokens
+                const claimTx = presale.connect(users.creator).claim();
+
+                //Assert transaction was reverted
+                await expect(claimTx).to.be.revertedWith("Claim has not started yet");
+            });
+
+            it("should revert if no tokens purchased", async function () {
+                //Set values
+                const { presale, users, saleStartTime, saleEndTime, ASI } = await deployPresaleFixture();
+                const tokensToPurchase = 1000;
+                const claimStartTime = saleEndTime + 1;
+
+                //Timeshift to sale period
+                await timeTravelFixture(saleStartTime + 1);
+
+                //Start claim
+                await startClaimFixture(
+                    presale,
+                    ASI,
+                    users.creator,
+                    users.presaleOwner,
+                    claimStartTime,
+                    tokensToPurchase
+                );
+
+                //Timeshift to claim period
+                await timeTravelFixture(claimStartTime + 1);
+
+                //Claim tokens
+                const claimTx = presale.connect(users.creator).claim();
+
+                //Assert transaction was reverted
+                await expect(claimTx).to.be.revertedWith("Nothing to claim");
+            });
+
+            it("should revert if already claimed", async function () {
+                //Set values
+                const { presale, users, saleStartTime, saleEndTime, ASI } = await deployPresaleFixture();
+                const tokensToPurchase = 1000;
+                const claimStartTime = saleEndTime + 1;
+
+                //Timeshift to sale period
+                await timeTravelFixture(saleStartTime + 1);
+
+                //Start claim
+                await startClaimFixture(
+                    presale,
+                    ASI,
+                    users.creator,
+                    users.presaleOwner,
+                    claimStartTime,
+                    tokensToPurchase
+                );
+
+                //Purchase some tokens
+                await purchaseTokensFixture(presale, users.creator, tokensToPurchase);
+
+                //Timeshift to claim period
+                await timeTravelFixture(claimStartTime + 1);
+
+                //Claim tokens
+                await presale.connect(users.creator).claim();
+
+                //Claim tokens again
+                const claimTx = presale.connect(users.creator).claim();
+
+                //Assert transaction was reverted
+                await expect(claimTx).to.be.revertedWith("Nothing to claim");
+            });
+
+            it("should emit TokensClaimed event", async function () {
+                //Set values
+                const { presale, users, saleStartTime, saleEndTime, ASI } = await deployPresaleFixture();
+                const tokensToPurchase = 1000;
+                const claimStartTime = saleEndTime + 1;
+
+                //Timeshift to sale period
+                await timeTravelFixture(saleStartTime + 1);
+
+                //Start claim
+                await startClaimFixture(
+                    presale,
+                    ASI,
+                    users.creator,
+                    users.presaleOwner,
+                    claimStartTime,
+                    tokensToPurchase
+                );
+
+                //Purchase some tokens
+                await purchaseTokensFixture(presale, users.creator, tokensToPurchase);
+
+                //Timeshift to claim period
+                await timeTravelFixture(claimStartTime + 1);
+
+                //Claim tokens
+                const claimTx = presale.connect(users.creator).claim();
+
+                //Assert transaction was successful
+                await expect(claimTx).not.to.be.reverted;
+
+                //Assert event was emitted
+                expect(claimTx).to.emit(presale, "TokensClaimed").withArgs(users.creator.address, tokensToPurchase);
+            });
+        });
     });
 });
