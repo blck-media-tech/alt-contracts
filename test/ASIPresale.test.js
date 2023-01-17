@@ -255,10 +255,11 @@ describe("ASIPresale", function () {
     });
 
     describe("Token functions", function () {
+        let currentTimeCorrector = 0;
         async function deployPresaleFixture() {
             //setup values
-            const saleStartTime = Math.floor(new Date().getTime() / 1000) + DAY_IN_SECONDS;
-            const saleEndTime = Math.floor(new Date().getTime() / 1000) + DAY_IN_SECONDS * 2;
+            const saleStartTime = Math.floor(new Date().getTime() / 1000) + currentTimeCorrector + DAY_IN_SECONDS;
+            const saleEndTime = Math.floor(new Date().getTime() / 1000) + currentTimeCorrector + DAY_IN_SECONDS * 2;
             const stageAmount = [
                 BigNumber.from("40000000"),
                 BigNumber.from("102500000"),
@@ -307,7 +308,14 @@ describe("ASIPresale", function () {
         }
 
         async function timeTravelFixture(targetTime) {
+            const block = await hre.ethers.provider.getBlock("latest");
             await hre.network.provider.send("evm_setNextBlockTimestamp", [targetTime]);
+            currentTimeCorrector = targetTime - block.timestamp;
+        }
+
+        async function startClaimFixture(presale, ASI, creator, presaleOwner, claimStartTime, tokensAmount) {
+            await ASI.connect(creator).transfer(presale.address, tokensAmount);
+            await presale.connect(presaleOwner).startClaim(claimStartTime, tokensAmount);
         }
 
         describe("'pause' function", function () {
