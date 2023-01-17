@@ -294,6 +294,8 @@ describe("ASIPresale", function () {
                 presale,
                 saleStartTime,
                 saleEndTime,
+                stageAmount,
+                stagePrice,
                 users: {
                     creator,
                     presaleOwner,
@@ -820,6 +822,25 @@ describe("ASIPresale", function () {
                 expect(changeClaimStartTimeTx)
                     .to.emit(presale, "ClaimStartTimeUpdated")
                     .withArgs(claimStartTimeBefore.add(claimStartTimeModifier));
+            });
+        });
+
+        describe("'getCurrentPrice' function", function () {
+            it("should return stage price for current stage", async function () {
+                //Set values
+                const { presale, stagePrice } = await deployPresaleFixture();
+
+                //Get current stage
+                const stage = await presale.currentStage();
+
+                //Get current stage price
+                const getCurrentPriceTx = presale.getCurrentPrice();
+
+                //Assert transaction was successful
+                await expect(getCurrentPriceTx).not.to.be.reverted;
+
+                //Assert current stage price with expected
+                expect(await getCurrentPriceTx).to.equal(stagePrice[stage]);
             });
         });
     });
