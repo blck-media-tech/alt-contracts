@@ -13,6 +13,9 @@ module.exports = {
             stageAmount: "",
             stagePrice: "",
         },
+        USDTStub: {
+            initialSupply: "",
+        },
     },
     mainnet: {
         ASIToken: {

@@ -4,6 +4,8 @@ require("./task/subtasks");
 
 require("./task/asiToken/asiToken.deploy");
 require("./task/asiPresale/asiPresale.deploy");
+require("./task/asiPresale/USDTStub.deploy");
+require("./task/asiPresale/ChainlinkPriceFeedStub.deploy");
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
