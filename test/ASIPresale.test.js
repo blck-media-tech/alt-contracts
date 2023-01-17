@@ -1369,5 +1369,28 @@ describe("ASIPresale", function () {
                 expect(claimTx).to.emit(presale, "TokensClaimed").withArgs(users.creator.address, tokensToPurchase);
             });
         });
+
+        describe("'calculateWeiPrice' function", function () {
+            it("should calculate correct wei price", async function () {
+                //Set values
+                const { presale, stagePrice } = await deployPresaleFixture();
+                const tokensToPurchase = 1000;
+
+                //calculate expected price
+                const expectedPrice = stagePrice[0]
+                    .mul(tokensToPurchase)
+                    .mul(BigNumber.from(10).pow(18))
+                    .div(await presale.getLatestPrice());
+
+                //Calculate wei price
+                const calculateWeiPriceTx = presale.calculateWeiPrice(tokensToPurchase);
+
+                //Assert transaction was successful
+                await expect(calculateWeiPriceTx).not.to.be.reverted;
+
+                //Assert price with expected
+                expect(await calculateWeiPriceTx).to.equal(expectedPrice);
+            });
+        });
     });
 });
