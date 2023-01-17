@@ -169,7 +169,7 @@ contract ASIPresale is Initializable, Pausable, Ownable, ReentrancyGuard {
     }
 
     function getSoldOnCurrentStage() external view returns (uint256 soldOnCurrentStage) {
-        if (stage == 0 ) soldOnCurrentStage = totalTokensSold;
+        if (currentStage == 0) soldOnCurrentStage = totalTokensSold;
         else soldOnCurrentStage = totalTokensSold - stageAmount[currentStage];
     }
 
