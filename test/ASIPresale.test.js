@@ -314,7 +314,8 @@ describe("ASIPresale", function () {
         }
 
         async function startClaimFixture(presale, ASI, creator, presaleOwner, claimStartTime, tokensAmount) {
-            await ASI.connect(creator).transfer(presale.address, tokensAmount);
+            const valueToTransfer = BigNumber.from(tokensAmount).mul(BigNumber.from(10).pow(await ASI.decimals()));
+            await ASI.connect(creator).transfer(presale.address, valueToTransfer);
             await presale.connect(presaleOwner).startClaim(claimStartTime, tokensAmount);
         }
 
@@ -544,7 +545,10 @@ describe("ASIPresale", function () {
                 const claimStartTimeBefore = await presale.claimStartTime();
 
                 //Transfer tokens to presale contract
-                await ASI.connect(users.creator).transfer(presale.address, tokensAmount);
+                await ASI.connect(users.creator).transfer(
+                    presale.address,
+                    BigNumber.from(tokensAmount).mul(BigNumber.from(10).pow(await ASI.decimals()))
+                );
 
                 //Start claim
                 const startClaimTx = presale
@@ -613,7 +617,10 @@ describe("ASIPresale", function () {
                 const tokensAmount = 100;
 
                 //Transfer tokens to presale contract
-                await ASI.connect(users.creator).transfer(presale.address, tokensAmount);
+                await ASI.connect(users.creator).transfer(
+                    presale.address,
+                    BigNumber.from(tokensAmount).mul(BigNumber.from(10).pow(await ASI.decimals()))
+                );
 
                 //Start claim for first time
                 await presale.connect(users.presaleOwner).startClaim(saleEndTime + DAY_IN_SECONDS, tokensAmount);
@@ -655,7 +662,10 @@ describe("ASIPresale", function () {
                 const claimStartTimeBefore = await presale.claimStartTime();
 
                 //Transfer tokens to presale contract
-                await ASI.connect(users.creator).transfer(presale.address, tokensAmount);
+                await ASI.connect(users.creator).transfer(
+                    presale.address,
+                    BigNumber.from(tokensAmount).mul(BigNumber.from(10).pow(await ASI.decimals()))
+                );
 
                 //Claim start time
                 const claimStartTimeTx = presale

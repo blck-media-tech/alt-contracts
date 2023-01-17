@@ -164,7 +164,7 @@ contract ASIPresale is Initializable, Pausable, Ownable, ReentrancyGuard {
         require(_claimStartTime > saleEndTime && _claimStartTime > block.timestamp, "Invalid claim start time");
         require(amount >= totalTokensSold, "Tokens less than sold");
         require(claimStartTime == 0, "Claim already set");
-        require(IERC20(saleToken).balanceOf(address(this)) >= amount, "Not enough balance");
+        require(IERC20(saleToken).balanceOf(address(this)) >= amount * 1e18, "Not enough balance");
         claimStartTime = _claimStartTime;
         emit ClaimStartTimeUpdated(
             _claimStartTime,
@@ -276,7 +276,7 @@ contract ASIPresale is Initializable, Pausable, Ownable, ReentrancyGuard {
     external
     whenNotPaused
     {
-        require(block.timestamp >= claimStartTime, "Claim has not started yet");
+        require(block.timestamp >= claimStartTime && claimStartTime > 0, "Claim has not started yet");
         uint256 amount = purchasedTokens[_msgSender()];
         require(amount > 0, "Nothing to claim");
         purchasedTokens[_msgSender()] -= amount;
