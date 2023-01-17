@@ -4,11 +4,29 @@ module.exports = {
             cap: "",
             initialSupply: "",
         },
+        ASIPresale: {
+            saleToken: "",
+            oracle: "",
+            USDTAddress: "",
+            saleStartTime: "",
+            saleEndTime: "",
+            stageAmount: "",
+            stagePrice: "",
+        },
     },
     mainnet: {
         ASIToken: {
-            cap: "",
             initialSupply: "",
+            cap: "",
+        },
+        ASIPresale: {
+            saleToken: "",
+            oracle: "",
+            USDTAddress: "",
+            saleStartTime: "",
+            saleEndTime: "",
+            stageAmount: "",
+            stagePrice: "",
         },
     },
 };
