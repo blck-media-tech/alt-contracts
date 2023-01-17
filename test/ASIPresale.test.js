@@ -859,5 +859,40 @@ describe("ASIPresale", function () {
                 expect(await getTotalPresaleAmountTx).to.equal(stageAmount[stageAmount.length - 1]);
             });
         });
+
+        describe("'totalSoldPrice' function", function () {
+            it("should return total cost of sold tokens", async function () {
+                //Set values
+                const { presale, users, saleStartTime, stagePrice, stageAmount } = await deployPresaleFixture();
+                const tokensToPurchase = 1000;
+
+                //Timeshift to sale period
+                await timeTravelFixture(saleStartTime + 1);
+
+                //Purchase some tokens
+                await purchaseTokensFixture(presale, users.creator, tokensToPurchase);
+
+                //Get total token sold amount
+                const tokensSold = await presale.totalTokensSold();
+
+                //Calculate expected price
+                let price = BigNumber.from(0);
+                let tokensCalculated = 0;
+                for (let i = 0; tokensSold <= stageAmount[i]; i++) {
+                    const tokensForStage = Math.min(tokensSold, stageAmount[i]) - tokensCalculated;
+                    price = price.add(stagePrice[i].mul(tokensForStage));
+                    tokensCalculated += tokensForStage;
+                }
+
+                //Get total sold price
+                const totalSoldPriceTx = presale.totalSoldPrice();
+
+                //Assert transaction was successful
+                await expect(totalSoldPriceTx).not.to.be.reverted;
+
+                //Assert total sold price with expected
+                expect(await totalSoldPriceTx).to.equal(price);
+            });
+        });
     });
 });
