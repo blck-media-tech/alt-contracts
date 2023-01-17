@@ -843,5 +843,21 @@ describe("ASIPresale", function () {
                 expect(await getCurrentPriceTx).to.equal(stagePrice[stage]);
             });
         });
+
+        describe("'getTotalPresaleAmount' function", function () {
+            it("should return total presale limit", async function () {
+                //Set values
+                const { presale, stageAmount } = await deployPresaleFixture();
+
+                //Get total presale amount
+                const getTotalPresaleAmountTx = presale.getTotalPresaleAmount();
+
+                //Assert transaction was successful
+                await expect(getTotalPresaleAmountTx).not.to.be.reverted;
+
+                //Assert total presale amount with expected
+                expect(await getTotalPresaleAmountTx).to.equal(stageAmount[stageAmount.length - 1]);
+            });
+        });
     });
 });
