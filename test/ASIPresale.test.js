@@ -467,11 +467,8 @@ describe("ASIPresale", function () {
                 //Assert transaction was successful
                 await expect(changeSaleStartTimeTx).not.to.be.reverted;
 
-                //Get sale start time after transaction
-                const saleStartTimeAfter = await presale.saleStartTime();
-
-                //Assert sale start time after transaction with expected
-                expect(saleStartTimeAfter)
+                //Assert SaleStartTimeUpdated event was emitted
+                expect(changeSaleStartTimeTx)
                     .to.emit(presale, "SaleStartTimeUpdated")
                     .withArgs(saleStartTimeBefore.add(saleStartTimeModifier));
             });
@@ -530,11 +527,8 @@ describe("ASIPresale", function () {
                 //Assert transaction was successful
                 await expect(changeSaleStartTimeTx).not.to.be.reverted;
 
-                //Get sales start time after transaction
-                const saleStartTimeAfter = await presale.saleStartTime();
-
-                //Assert transaction results
-                expect(saleStartTimeAfter)
+                //Assert SaleEndTimeUpdated event was emitted
+                expect(changeSaleStartTimeTx)
                     .to.emit(presale, "SaleEndTimeUpdated")
                     .withArgs(saleStartTimeBefore.add(saleStartTimeModifier));
             });
@@ -671,11 +665,8 @@ describe("ASIPresale", function () {
                 //Assert transaction was successful
                 await expect(claimStartTimeTx).not.to.be.reverted;
 
-                //Get claim start time after transaction
-                const claimStartTimeAfter = await presale.claimStartTime();
-
-                //Assert sale start time after transaction with expected
-                expect(claimStartTimeAfter)
+                //Assert SaleEndTimeUpdated event was emitted
+                expect(claimStartTimeTx)
                     .to.emit(presale, "ClaimStartTimeUpdated")
                     .withArgs(claimStartTimeBefore.add(claimStartTimeModifier));
             });
