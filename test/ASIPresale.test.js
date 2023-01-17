@@ -694,5 +694,133 @@ describe("ASIPresale", function () {
                 await expect(startClaimTx).to.be.revertedWith("Tokens less than sold");
             });
         });
+
+        describe("'changeClaimStartTime' function", function () {
+            it("should set claim start time", async function () {
+                //Set values
+                const { presale, ASI, users, saleEndTime } = await deployPresaleFixture();
+                const claimStartTimeModifier = DAY_IN_SECONDS;
+
+                //Start claim
+                await startClaimFixture(
+                    presale,
+                    ASI,
+                    users.creator,
+                    users.presaleOwner,
+                    saleEndTime + DAY_IN_SECONDS,
+                    100
+                );
+
+                //Get claim start time before transaction
+                const claimStartTimeBefore = await presale.claimStartTime();
+
+                //Change claim start time
+                const changeClaimStartTimeTx = presale
+                    .connect(users.presaleOwner)
+                    .changeClaimStartTime(claimStartTimeBefore.add(claimStartTimeModifier));
+
+                //Assert transaction was successful
+                await expect(changeClaimStartTimeTx).not.to.be.reverted;
+
+                //Get claim start time after transaction
+                const claimStartTimeAfter = await presale.claimStartTime();
+
+                //Assert claim start time after transaction with expected
+                expect(claimStartTimeAfter).to.equal(claimStartTimeBefore.add(claimStartTimeModifier));
+            });
+
+            it("should revert if called not by the owner", async function () {
+                //Set values
+                const { presale, ASI, users, saleEndTime } = await deployPresaleFixture();
+                const claimStartTimeModifier = DAY_IN_SECONDS;
+
+                //Start claim
+                await startClaimFixture(
+                    presale,
+                    ASI,
+                    users.creator,
+                    users.presaleOwner,
+                    saleEndTime + claimStartTimeModifier,
+                    100
+                );
+
+                //Get claim start time before transaction
+                const claimStartTimeBefore = await presale.claimStartTime();
+
+                //Change claim start time
+                const changeClaimStartTimeTx = presale.changeClaimStartTime(
+                    claimStartTimeBefore.add(claimStartTimeModifier)
+                );
+
+                //Assert transaction is reverted
+                await expect(changeClaimStartTimeTx).to.be.revertedWith("Ownable: caller is not the owner");
+            });
+
+            it("should revert if passed time is in sale period", async function () {
+                //Set values
+                const { presale, ASI, users, saleEndTime } = await deployPresaleFixture();
+
+                //Start claim
+                await startClaimFixture(
+                    presale,
+                    ASI,
+                    users.creator,
+                    users.presaleOwner,
+                    saleEndTime + DAY_IN_SECONDS,
+                    100
+                );
+
+                //Change claim start time
+                const changeClaimStartTimeTx = presale.connect(users.presaleOwner).changeClaimStartTime(saleEndTime);
+
+                //Assert transaction is reverted
+                await expect(changeClaimStartTimeTx).to.be.revertedWith("Sale in progress");
+            });
+
+            it("should revert if claim is not set", async function () {
+                //Set values
+                const { presale, users, saleEndTime } = await deployPresaleFixture();
+
+                //Change claim start time
+                const changeClaimStartTimeTx = presale
+                    .connect(users.presaleOwner)
+                    .changeClaimStartTime(saleEndTime + 1);
+
+                //Assert transaction is reverted
+                await expect(changeClaimStartTimeTx).to.be.revertedWith("Initial claim data not set");
+            });
+
+            it("should emit SaleStartTimeUpdated event", async function () {
+                //Set values
+                const { presale, ASI, users, saleEndTime } = await deployPresaleFixture();
+                const claimStartTimeModifier = DAY_IN_SECONDS;
+
+                //Start claim
+                await startClaimFixture(
+                    presale,
+                    ASI,
+                    users.creator,
+                    users.presaleOwner,
+                    saleEndTime + claimStartTimeModifier,
+                    100
+                );
+
+                //Get claim start time before transaction
+                const claimStartTimeBefore = await presale.claimStartTime();
+
+                //Change claim start time
+                const changeClaimStartTimeTx = presale
+                    .connect(users.presaleOwner)
+                    .changeClaimStartTime(claimStartTimeBefore.add(claimStartTimeModifier));
+
+                //Assert transaction was successful
+                await expect(changeClaimStartTimeTx).not.to.be.reverted;
+
+                //Assert ClaimStartTimeUpdated event was emitted
+                expect(changeClaimStartTimeTx)
+                    .to.emit(presale, "ClaimStartTimeUpdated")
+                    .withArgs(claimStartTimeBefore.add(claimStartTimeModifier));
+            });
+        });
     });
 });
