@@ -892,5 +892,137 @@ describe("ASIPresale", function () {
                 expect(await totalSoldPriceTx).to.equal(price);
             });
         });
+
+        describe("'buyWithEth' function", function () {
+            it("should increase purchased tokens amount and transfer payment to owner", async function () {
+                //Set values
+                const { presale, users, saleStartTime, ASI } = await deployPresaleFixture();
+                const tokensToPurchase = 1000;
+
+                //Timeshift to sale period
+                await timeTravelFixture(saleStartTime + 1);
+
+                //Get wei price
+                const weiPrice = await presale.calculateWeiPrice(tokensToPurchase);
+
+                //Get values before transaction
+                const purchaseTokensAmountBefore = await presale.purchasedTokens(users.creator.address);
+                const ETHAmountBefore = await hre.ethers.provider.getBalance(users.presaleOwner.address);
+
+                //Buy with eth
+                const buyWithEthTx = presale.connect(users.creator).buyWithEth(tokensToPurchase, { value: weiPrice });
+
+                //Assert transaction was successful
+                await expect(buyWithEthTx).not.to.be.reverted;
+
+                //Get values after transaction
+                const purchaseTokensAmountAfter = await presale.purchasedTokens(users.creator.address);
+                const ETHAmountAfter = await hre.ethers.provider.getBalance(users.presaleOwner.address);
+                const decimals = await ASI.decimals();
+
+                //Assert values with expected
+                expect(purchaseTokensAmountAfter).to.equal(
+                    purchaseTokensAmountBefore.add(BigNumber.from(10).pow(decimals).mul(tokensToPurchase))
+                );
+                expect(ETHAmountAfter).to.equal(ETHAmountBefore.add(weiPrice));
+            });
+
+            it("should revert if trying to buy before sales start", async function () {
+                //Set values
+                const { presale, users } = await deployPresaleFixture();
+                const tokensToPurchase = 1000;
+
+                //Get wei price
+                const weiPrice = await presale.calculateWeiPrice(tokensToPurchase);
+
+                //Buy with eth
+                const buyWithEthTx = presale.connect(users.creator).buyWithEth(tokensToPurchase, { value: weiPrice });
+
+                //Assert transaction was reverted
+                await expect(buyWithEthTx).to.be.revertedWith("Invalid time for buying");
+            });
+
+            it("should revert if not enough value", async function () {
+                //Set values
+                const { presale, users, saleStartTime } = await deployPresaleFixture();
+                const tokensToPurchase = 1000;
+
+                //Timeshift to sale period
+                await timeTravelFixture(saleStartTime + 1);
+
+                //Get wei price
+                const weiPrice = await presale.calculateWeiPrice(tokensToPurchase);
+
+                //Buy with eth
+                const buyWithEthTx = presale
+                    .connect(users.creator)
+                    .buyWithEth(tokensToPurchase, { value: weiPrice.sub(1) });
+
+                //Assert transaction was reverted
+                await expect(buyWithEthTx).to.be.revertedWith("Not enough wei");
+            });
+
+            it("should revert if try to buy more tokens than presale limit", async function () {
+                //Set values
+                const { presale, users, saleStartTime, stageAmount } = await deployPresaleFixture();
+                const tokensToPurchase = stageAmount[stageAmount.length - 1];
+
+                //Timeshift to sale period
+                await timeTravelFixture(saleStartTime + 1);
+
+                //Get wei price
+                const weiPrice = await presale.calculateWeiPrice(tokensToPurchase);
+
+                //Buy with eth
+                const buyWithEthTx = presale
+                    .connect(users.creator)
+                    .buyWithEth(tokensToPurchase + 1, { value: weiPrice });
+
+                //Assert transaction was reverted
+                await expect(buyWithEthTx).to.be.revertedWith("Invalid amount: pre-sale limit exceeded");
+            });
+
+            it("should revert if try to buy 0 tokens", async function () {
+                //Set values
+                const { presale, users, saleStartTime } = await deployPresaleFixture();
+                const tokensToPurchase = 0;
+
+                //Timeshift to sale period
+                await timeTravelFixture(saleStartTime + 1);
+
+                //Get wei price
+                const weiPrice = await presale.calculateWeiPrice(tokensToPurchase);
+
+                //Buy with eth
+                const buyWithEthTx = presale.connect(users.creator).buyWithEth(tokensToPurchase, { value: weiPrice });
+
+                //Assert transaction was reverted
+                await expect(buyWithEthTx).to.be.revertedWith("Invalid amount: you should buy at least one token");
+            });
+
+            it("should emit TokensBought event", async function () {
+                //Set values
+                const { presale, users, saleStartTime } = await deployPresaleFixture();
+                const tokensToPurchase = 1000;
+
+                //Timeshift to sale period
+                await timeTravelFixture(saleStartTime + 1);
+
+                //Get wei price
+                const weiPrice = await presale.calculateWeiPrice(tokensToPurchase);
+                const USDTPrice = await presale.calculateUSDTPrice(tokensToPurchase);
+
+                //Buy with eth
+                const buyWithEthTx = presale.connect(users.creator).buyWithEth(tokensToPurchase, { value: weiPrice });
+
+                //Assert transaction was successful
+                await expect(buyWithEthTx).not.to.be.reverted;
+
+                //Assert TokensBought event was emitted
+                expect(await buyWithEthTx)
+                    .to.emit(presale, "TokensBought")
+                    .withArgs(users.creator.address, "ETH", tokensToPurchase, USDTPrice, weiPrice);
+            });
+        });
     });
 });
