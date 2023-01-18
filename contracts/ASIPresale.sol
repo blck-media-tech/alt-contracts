@@ -20,7 +20,7 @@ interface ChainlinkPriceFeed {
     );
 }
 
-contract ASIPresale is Initializable, Pausable, Ownable, ReentrancyGuard {
+contract ASIPresale is Pausable, Ownable, ReentrancyGuard {
     address public immutable saleToken;
 
     uint256 public totalTokensSold;
@@ -73,8 +73,8 @@ contract ASIPresale is Initializable, Pausable, Ownable, ReentrancyGuard {
             block.timestamp >= saleStartTime && block.timestamp <= saleEndTime,
             "Invalid time for buying"
         );
-        require(amount > 0, "Invalid amount: you should buy at least one token");
-        require(amount + totalTokensSold <= stageAmount[maxStageIndex], "Invalid amount: pre-sale limit exceeded");
+        require(amount > 0, "You should buy at least one token");
+        require(amount + totalTokensSold <= stageAmount[maxStageIndex], "Insufficient funds");
         _;
     }
 
@@ -86,7 +86,7 @@ contract ASIPresale is Initializable, Pausable, Ownable, ReentrancyGuard {
         uint256 _saleEndTime,
         uint256[4] memory _stageAmount,
         uint256[4] memory _stagePrice
-    ) Ownable() ReentrancyGuard() Pausable() {
+    ) {
         require(_oracle != address(0), "Zero aggregator address");
         require(_usdt != address(0), "Zero USDT address");
         require(_saleToken != address(0), "Zero sale token address");
@@ -169,8 +169,7 @@ contract ASIPresale is Initializable, Pausable, Ownable, ReentrancyGuard {
     }
 
     function getSoldOnCurrentStage() external view returns (uint256 soldOnCurrentStage) {
-        if (currentStage == 0) soldOnCurrentStage = totalTokensSold;
-        else soldOnCurrentStage = totalTokensSold - stageAmount[currentStage];
+        soldOnCurrentStage = totalTokensSold - ((currentStage == 0)? 0 : stageAmount[currentStage]);
     }
 
     function getTotalPresaleAmount() external view returns (uint256) {
@@ -254,7 +253,7 @@ contract ASIPresale is Initializable, Pausable, Ownable, ReentrancyGuard {
     }
 
     function _calculateInternalCost(uint256 _amount) internal view returns (uint256) {
-        require(_amount + totalTokensSold <= stageAmount[maxStageIndex], "Invalid amount: pre-sale limit exceeded");
+        require(_amount + totalTokensSold <= stageAmount[maxStageIndex], "Insufficient funds");
         return _calculateInternalCostForConditions(_amount, currentStage, totalTokensSold);
     }
 

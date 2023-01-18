@@ -1074,7 +1074,7 @@ describe("ASIPresale", function () {
                     .buyWithEth(tokensToPurchase + 1, { value: weiPrice });
 
                 //Assert transaction was reverted
-                await expect(buyWithEthTx).to.be.revertedWith("Invalid amount: pre-sale limit exceeded");
+                await expect(buyWithEthTx).to.be.revertedWith("Insufficient funds");
             });
 
             it("should revert if try to buy 0 tokens", async function () {
@@ -1092,7 +1092,7 @@ describe("ASIPresale", function () {
                 const buyWithEthTx = presale.connect(users.creator).buyWithEth(tokensToPurchase, { value: weiPrice });
 
                 //Assert transaction was reverted
-                await expect(buyWithEthTx).to.be.revertedWith("Invalid amount: you should buy at least one token");
+                await expect(buyWithEthTx).to.be.revertedWith("You should buy at least one token");
             });
 
             it("should emit TokensBought event", async function () {
@@ -1208,7 +1208,7 @@ describe("ASIPresale", function () {
                 const buyWithUSDTTx = presale.connect(users.creator).buyWithUSDT(tokensToPurchase);
 
                 //Assert transaction was reverted
-                await expect(buyWithUSDTTx).to.be.revertedWith("Invalid amount: pre-sale limit exceeded");
+                await expect(buyWithUSDTTx).to.be.revertedWith("Insufficient funds");
             });
 
             it("should revert if try to buy 0 tokens", async function () {
@@ -1229,7 +1229,7 @@ describe("ASIPresale", function () {
                 const buyWithUSDTTx = presale.connect(users.creator).buyWithUSDT(tokensToPurchase);
 
                 //Assert transaction was reverted
-                await expect(buyWithUSDTTx).to.be.revertedWith("Invalid amount: you should buy at least one token");
+                await expect(buyWithUSDTTx).to.be.revertedWith("You should buy at least one token");
             });
 
             it("should emit TokensBought event", async function () {
