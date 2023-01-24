@@ -2,6 +2,7 @@
 pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -10,6 +11,8 @@ import "../interfaces/IChainlinkPriceFeed.sol";
 import "../interfaces/IPresale.sol";
 
 contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
+    using SafeERC20 for IERC20;
+    
     address public immutable saleToken;
 
     uint256 public totalTokensSold;
@@ -69,7 +72,7 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
         );
 
         saleToken = _saleToken;
-        oracle = ChainlinkPriceFeed(_oracle);
+        oracle = IChainlinkPriceFeed(_oracle);
         USDTToken = IERC20(_usdt);
         stageAmount = _stageAmount;
         stagePrice = _stagePrice;
@@ -180,15 +183,11 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
             address(this)
         );
         require(usdtPrice <= allowance, "Make sure to add enough allowance");
-        (bool success,) = address(USDTToken).call(
-            abi.encodeWithSignature(
-                "transferFrom(address,address,uint256)",
+        USDTToken.safeTransferFrom(
                 _msgSender(),
                 owner(),
                 usdtPrice
-            )
         );
-        require(success, "Token payment failed");
         totalTokensSold += amount;
         purchasedTokens[_msgSender()] += amount * 1e18;
         uint8 stageAfterPurchase = _getStageByTotalSoldAmount();
