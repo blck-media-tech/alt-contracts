@@ -25,7 +25,7 @@ describe("ASIPresale", function () {
 
     async function deployUSDTStubFixture(creator) {
         const USDTFactory = await hre.ethers.getContractFactory("USDTStub");
-        return await USDTFactory.connect(creator).deploy(500000000);
+        return await USDTFactory.connect(creator).deploy("50000000000000000", "Tether USD", "USDT", 6);
     }
 
     async function deployChainlinkPriceFeedStubFixture(creator) {
@@ -1133,7 +1133,7 @@ describe("ASIPresale", function () {
                 const USDTPrice = await presale.calculateUSDTPrice(tokensToPurchase);
 
                 //Add allowance to contract
-                await USDT.connect(users.creator).increaseAllowance(presale.address, USDTPrice);
+                await USDT.connect(users.creator).approve(presale.address, USDTPrice);
 
                 //Get values before transaction
                 const purchaseTokensAmountBefore = await presale.purchasedTokens(users.creator.address);
@@ -1166,7 +1166,7 @@ describe("ASIPresale", function () {
                 const USDTPrice = await presale.calculateUSDTPrice(tokensToPurchase);
 
                 //Add allowance to contract
-                await USDT.connect(users.creator).increaseAllowance(presale.address, USDTPrice);
+                await USDT.connect(users.creator).approve(presale.address, USDTPrice);
 
                 //Buy with USDT
                 const buyWithUSDTTx = presale.connect(users.creator).buyWithUSDT(tokensToPurchase);
@@ -1202,7 +1202,7 @@ describe("ASIPresale", function () {
                 const USDTPrice = await presale.calculateUSDTPrice(tokensToPurchase);
 
                 //Add allowance to contract
-                await USDT.connect(users.creator).increaseAllowance(presale.address, USDTPrice);
+                await USDT.connect(users.creator).approve(presale.address, USDTPrice);
 
                 //Buy with USDT
                 const buyWithUSDTTx = presale.connect(users.creator).buyWithUSDT(tokensToPurchase);
@@ -1223,7 +1223,7 @@ describe("ASIPresale", function () {
                 const USDTPrice = await presale.calculateUSDTPrice(tokensToPurchase);
 
                 //Add allowance to contract
-                await USDT.connect(users.creator).increaseAllowance(presale.address, USDTPrice);
+                await USDT.connect(users.creator).approve(presale.address, USDTPrice);
 
                 //Buy with USDT
                 const buyWithUSDTTx = presale.connect(users.creator).buyWithUSDT(tokensToPurchase);
@@ -1244,7 +1244,7 @@ describe("ASIPresale", function () {
                 const USDTPrice = await presale.calculateUSDTPrice(tokensToPurchase);
 
                 //Add allowance to contract
-                await USDT.connect(users.creator).increaseAllowance(presale.address, USDTPrice);
+                await USDT.connect(users.creator).approve(presale.address, USDTPrice);
 
                 //Buy with USDT
                 const buyWithUSDTTx = presale.connect(users.creator).buyWithUSDT(tokensToPurchase);
