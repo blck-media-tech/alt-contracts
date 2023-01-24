@@ -6,21 +6,10 @@ import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "../interfaces/IChainlinkPriceFeed.sol";
+import "../interfaces/IPresale.sol";
 
-interface ChainlinkPriceFeed {
-    function latestRoundData()
-    external
-    view
-    returns (
-        uint80 roundId,
-        int256 answer,
-        uint256 startedAt,
-        uint256 updatedAt,
-        uint80 answeredInRound
-    );
-}
-
-contract ASIPresale is Pausable, Ownable, ReentrancyGuard {
+contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
     address public immutable saleToken;
 
     uint256 public totalTokensSold;
@@ -34,28 +23,12 @@ contract ASIPresale is Pausable, Ownable, ReentrancyGuard {
     uint8 public currentStage;
 
     IERC20 public USDTToken;
-    ChainlinkPriceFeed public oracle;
+    IChainlinkPriceFeed public oracle;
 
     mapping(address => uint256) public purchasedTokens;
 
     event ClaimStartTimeUpdated(
         uint256 newValue,
-        uint256 timestamp
-    );
-
-    event SaleStartTimeUpdated(
-        uint256 newValue,
-        uint256 timestamp
-    );
-
-    event SaleEndTimeUpdated(
-        uint256 newValue,
-        uint256 timestamp
-    );
-
-    event TokensClaimed(
-        address indexed user,
-        uint256 amount,
         uint256 timestamp
     );
 
