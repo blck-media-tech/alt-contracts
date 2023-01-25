@@ -29,6 +29,7 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
     IChainlinkPriceFeed public oracle;
 
     mapping(address => uint256) public purchasedTokens;
+    mapping(address => bool) public blacklist;
 
     modifier checkSaleState(uint256 amount) {
         require(
@@ -37,6 +38,11 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
         );
         require(amount > 0, "You should buy at least one token");
         require(amount + totalTokensSold <= stageAmount[maxStageIndex], "Insufficient funds");
+        _;
+    }
+
+    modifier notBlacklisted() {
+        require(!blacklist[_msgSender()], "You are in blacklist");
         _;
     }
 
@@ -84,6 +90,25 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
         _unpause();
     }
 
+    /**
+     * @dev To add users to blacklist
+     * @param _users - Array of addresses to add in blacklist
+     */
+    function addToBlacklist(address[] calldata _users) external onlyOwner {
+        uint256 usersAmount = _users.length;
+        uint256 i = 0;
+        while(i<usersAmount) blacklist[_users[i++]] = true;
+    }
+
+    /**
+     * @dev To remove users from blacklist
+     * @param _users - Array of addresses to remove from blacklist
+     */
+    function removeFromBlacklist(address[] calldata _users) external onlyOwner {
+        uint256 usersAmount = _users.length;
+        uint256 i = 0;
+        while(i<usersAmount) blacklist[_users[i++]] = false;
+    }
     /**
      * @dev Returns total price of sold tokens
      * @param _tokenAddress - Address of token to resque
@@ -151,7 +176,7 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
         return _calculateInternalCostForConditions(totalTokensSold, 0 ,0);
     }
 
-    function buyWithEth(uint256 amount) external payable checkSaleState(amount) whenNotPaused nonReentrant {
+    function buyWithEth(uint256 amount) external payable notBlacklisted checkSaleState(amount) whenNotPaused nonReentrant {
         uint256 weiAmount = calculateWeiPrice(amount);
         require(msg.value >= weiAmount, "Not enough wei");
         _sendValue(payable(owner()), weiAmount);
@@ -171,7 +196,7 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
         );
     }
 
-    function buyWithUSDT(uint256 amount) external checkSaleState(amount) whenNotPaused nonReentrant {
+    function buyWithUSDT(uint256 amount) external notBlacklisted checkSaleState(amount) whenNotPaused nonReentrant {
         uint256 usdtPrice = calculateUSDTPrice(amount);
         uint256 allowance = USDTToken.allowance(
             _msgSender(),
