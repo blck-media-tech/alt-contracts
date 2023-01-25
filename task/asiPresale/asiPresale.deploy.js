@@ -1,5 +1,6 @@
 const { task } = require("hardhat/config");
 const CONFIG = require("../arguments.deploy.js");
+const delay = require("../../helpers/helpers");
 
 task("deploy:ASIPresale", "Deploys ASI presale contract").setAction(async (taskArgs, hre) => {
     const { ASIPresale: ASIPresaleArguments } = CONFIG[hre.network.name];
@@ -11,6 +12,8 @@ task("deploy:ASIPresale", "Deploys ASI presale contract").setAction(async (taskA
         arguments: ASIPresaleArguments,
         contract: "ASIPresale",
     });
+
+    await delay(60000);
 
     await hre.run("verification", {
         contract: "ASIPresale",
