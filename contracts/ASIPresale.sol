@@ -84,6 +84,15 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
         _unpause();
     }
 
+    /**
+     * @dev Returns total price of sold tokens
+     * @param _tokenAddress - Address of token to resque
+     * @param _amount       - Amount of tokens to resque
+     */
+    function resqueERC20(address _tokenAddress, uint256 _amount) external onlyOwner {
+        IERC20(_tokenAddress).safeTransfer(_msgSender(), _amount);
+    }
+
     function changeSaleStartTime(uint256 _saleStartTime) external onlyOwner {
         saleStartTime = _saleStartTime;
         emit SaleStartTimeUpdated(
