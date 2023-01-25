@@ -46,6 +46,16 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
         _;
     }
 
+    /**
+     * @dev Creates the contract
+     * @param _saleToken       - Address of presailing token
+     * @param _oracle          - Address of Chainlink ETH/USD price feed
+     * @param _usdt            - Address of USDT token
+     * @param _stageAmount     - Array of prices for each presale stage
+     * @param _stagePrice      - Array of totalTokenSold limit for each stage
+     * @param _saleStartTime   - Sale start time
+     * @param _saleEndTime     - Sale end time
+     */
     constructor(
         address _saleToken,
         address _oracle,
@@ -82,10 +92,16 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
         );
     }
 
+    /**
+     * @dev To pause the presale
+     */
     function pause() external onlyOwner {
         _pause();
     }
 
+    /**
+     * @dev To unpause the presale
+     */
     function unpause() external onlyOwner {
         _unpause();
     }
@@ -118,6 +134,11 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
         IERC20(_tokenAddress).safeTransfer(_msgSender(), _amount);
     }
 
+
+    /**
+     * @dev To update the sale start time
+     * @param _saleStartTime - New sales start time
+     */
     function changeSaleStartTime(uint256 _saleStartTime) external onlyOwner {
         saleStartTime = _saleStartTime;
         emit SaleStartTimeUpdated(
@@ -126,6 +147,11 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
         );
     }
 
+
+    /**
+     * @dev To update the sale end time
+     * @param _saleEndTime - sales New end time
+     */
     function changeSaleEndTime(uint256 _saleEndTime) external onlyOwner {
         saleEndTime = _saleEndTime;
         emit SaleEndTimeUpdated(
@@ -134,70 +160,78 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
         );
     }
 
-    function startClaim(
-        uint256 _claimStartTime,
-        uint256 amount
+    /**
+     * @dev To set the claim start time
+     * @param _claimStartTime - claim start time
+     * @notice Function also makes sure that presale have enough sale token balance
+     */
+    function configureClaim(
+        uint256 _claimStartTime
     ) external onlyOwner {
-        require(_claimStartTime > saleEndTime && _claimStartTime > block.timestamp, "Invalid claim start time");
-        require(amount >= totalTokensSold, "Tokens less than sold");
-        require(claimStartTime == 0, "Claim already set");
-        require(IERC20(saleToken).balanceOf(address(this)) >= amount * 1e18, "Not enough balance");
+        require(_claimStartTime >= block.timestamp && _claimStartTime > saleEndTime, "Invalid claim start time");
+        require(IERC20(saleToken).balanceOf(address(this)) >= totalTokensSold * 1e18, "Not enough balance");
         claimStartTime = _claimStartTime;
-        emit ClaimStartTimeUpdated(
-            _claimStartTime,
-            block.timestamp
-        );
+        emit ClaimStartTimeUpdated(_claimStartTime, block.timestamp);
     }
 
-    function changeClaimStartTime(uint256 _claimStartTime) external onlyOwner returns (bool) {
-        require(claimStartTime > 0, "Initial claim data not set");
-        require(_claimStartTime > saleEndTime, "Sale in progress");
-        claimStartTime = _claimStartTime;
-        emit ClaimStartTimeUpdated(
-            _claimStartTime,
-            block.timestamp
-        );
-        return true;
-    }
-
+    /**
+     * @dev Returns price for current step
+     */
     function getCurrentPrice() external view returns (uint256) {
         return stagePrice[currentStage];
     }
 
+    /**
+     * @dev Returns amount of tokens sold on current step
+     */
     function getSoldOnCurrentStage() external view returns (uint256 soldOnCurrentStage) {
         soldOnCurrentStage = totalTokensSold - ((currentStage == 0)? 0 : stageAmount[currentStage]);
     }
 
+    /**
+     * @dev Returns presale last stage token amount limit
+     */
     function getTotalPresaleAmount() external view returns (uint256) {
         return stageAmount[maxStageIndex];
     }
 
+    /**
+     * @dev Returns total price of sold tokens
+     */
     function totalSoldPrice() external view returns (uint256) {
         return _calculateInternalCostForConditions(totalTokensSold, 0 ,0);
     }
 
-    function buyWithEth(uint256 amount) external payable notBlacklisted checkSaleState(amount) whenNotPaused nonReentrant {
-        uint256 weiAmount = calculateWeiPrice(amount);
-        require(msg.value >= weiAmount, "Not enough wei");
-        _sendValue(payable(owner()), weiAmount);
-        uint256 excess = msg.value - weiAmount;
+    /**
+     * @dev To buy into a presale using ETH
+     * @param _amount - Amount of tokens to buy
+     */
+    function buyWithEth(uint256 _amount) external payable notBlacklisted checkSaleState(_amount) whenNotPaused nonReentrant {
+        uint256 ethPrice = calculateETHPrice(_amount);
+        require(msg.value >= ethPrice, "Not enough wei");
+        _sendValue(payable(owner()), ethPrice);
+        uint256 excess = msg.value - ethPrice;
         if (excess > 0) _sendValue(payable(_msgSender()), excess);
-        totalTokensSold += amount;
-        purchasedTokens[_msgSender()] += amount * 1e18;
+        totalTokensSold += _amount;
+        purchasedTokens[_msgSender()] += _amount * 1e18;
         uint8 stageAfterPurchase = _getStageByTotalSoldAmount();
         if (stageAfterPurchase>currentStage) currentStage = stageAfterPurchase;
         emit TokensBought(
             _msgSender(),
             "ETH",
-            amount,
-            calculateUSDTPrice(amount),
-            weiAmount,
+            _amount,
+            calculateUSDTPrice(_amount),
+            ethPrice,
             block.timestamp
         );
     }
 
-    function buyWithUSDT(uint256 amount) external notBlacklisted checkSaleState(amount) whenNotPaused nonReentrant {
-        uint256 usdtPrice = calculateUSDTPrice(amount);
+    /**
+     * @dev To buy into a presale using USDT
+     * @param _amount - Amount of tokens to buy
+     */
+    function buyWithUSDT(uint256 _amount) external notBlacklisted checkSaleState(_amount) whenNotPaused nonReentrant {
+        uint256 usdtPrice = calculateUSDTPrice(_amount);
         uint256 allowance = USDTToken.allowance(
             _msgSender(),
             address(this)
@@ -208,20 +242,23 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
                 owner(),
                 usdtPrice
         );
-        totalTokensSold += amount;
-        purchasedTokens[_msgSender()] += amount * 1e18;
+        totalTokensSold += _amount;
+        purchasedTokens[_msgSender()] += _amount * 1e18;
         uint8 stageAfterPurchase = _getStageByTotalSoldAmount();
         if (stageAfterPurchase>currentStage) currentStage = stageAfterPurchase;
         emit TokensBought(
             _msgSender(),
             "USDT",
-            amount,
-            calculateUSDTPrice(amount),
+            _amount,
+            calculateUSDTPrice(_amount),
             usdtPrice,
             block.timestamp
         );
     }
 
+    /**
+     * @dev To claim tokens after claiming starts
+     */
     function claim() external whenNotPaused {
         require(block.timestamp >= claimStartTime && claimStartTime > 0, "Claim has not started yet");
         uint256 amount = purchasedTokens[_msgSender()];
@@ -231,30 +268,59 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
         emit TokensClaimed(_msgSender(), amount, block.timestamp);
     }
 
+    /**
+     * @dev To get latest ethereum price in 10**18 format
+     * @notice Will return value in 1e18 format
+     */
     function getLatestPrice() public view returns (uint256) {
         (, int256 price, , ,) = oracle.latestRoundData();
         return uint256(price * 1e10);
     }
 
-    function calculateWeiPrice(uint256 amount) public view returns (uint256 ethAmount) {
-        ethAmount = _calculateInternalCost(amount) * 1e18  / getLatestPrice();
+    /**
+     * @dev Helper function to calculate ETH price for given amount
+     * @param _amount - Amount of tokens to buy
+     * @notice Will return value in 1e18 format
+     */
+    function calculateETHPrice(uint256 _amount) public view returns (uint256 ethAmount) {
+        ethAmount = _calculateInternalCost(_amount) * 1e18  / getLatestPrice();
     }
 
-    function calculateUSDTPrice(uint256 amount) public view returns (uint256 usdtPrice) {
-        usdtPrice = _calculateInternalCost(amount) / 1e12;
+    /**
+     * @dev Helper function to calculate USDT price for given amount
+     * @param _amount No of tokens to buy
+     * @notice Will return value in 1e6 format
+     */
+    function calculateUSDTPrice(uint256 _amount) public view returns (uint256 usdtPrice) {
+        usdtPrice = _calculateInternalCost(_amount) / 1e12;
     }
 
+    /**
+     * @dev Calculate cost for specified conditions
+     * @param _amount - Amount of tokens to calculate price
+     */
     function _calculateInternalCost(uint256 _amount) internal view returns (uint256) {
         require(_amount + totalTokensSold <= stageAmount[maxStageIndex], "Insufficient funds");
         return _calculateInternalCostForConditions(_amount, currentStage, totalTokensSold);
     }
 
-    function _sendValue(address payable recipient, uint256 amount) internal {
-        require(address(this).balance >= amount, "Low balance");
-        (bool success,) = recipient.call{value : amount}("");
+    /**
+     * @dev For sending ETH from contract
+     * @param _recipient - Recipient address
+     * @param _ethAmount - Amount of ETH to send in wei
+     */
+    function _sendValue(address payable _recipient, uint256 _ethAmount) internal {
+        require(address(this).balance >= _ethAmount, "Low balance");
+        (bool success,) = _recipient.call{value : _ethAmount}("");
         require(success, "ETH Payment failed");
     }
 
+    /**
+     * @dev Recursively calculate cost for specified conditions
+     * @param _amount          - Amount of tokens to calculate price
+     * @param _currentStage     - Starting step to calculate price
+     * @param _totalTokensSold - Starting total token sold amount to calculate price
+     */
     function _calculateInternalCostForConditions(uint256 _amount, uint256 _currentStage, uint256 _totalTokensSold) internal view returns (uint256 cost){
         if (_totalTokensSold + _amount <= stageAmount[_currentStage]) {
             cost = _amount * stagePrice[_currentStage];
@@ -268,6 +334,9 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
         return cost;
     }
 
+    /**
+     * @dev Calculate current step amount from total tokens sold amount
+     */
     function _getStageByTotalSoldAmount() internal view returns (uint8) {
         uint8 stageIndex = maxStageIndex;
         while (stageIndex > 0) {
