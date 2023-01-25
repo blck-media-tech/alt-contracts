@@ -30,20 +30,6 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
 
     mapping(address => uint256) public purchasedTokens;
 
-    event ClaimStartTimeUpdated(
-        uint256 newValue,
-        uint256 timestamp
-    );
-
-    event TokensBought(
-        address indexed user,
-        bytes32 indexed currency,
-        uint256 amount,
-        uint256 totalCostInUsd,
-        uint256 totalCostInCurrency,
-        uint256 timestamp
-    );
-
     modifier checkSaleState(uint256 amount) {
         require(
             block.timestamp >= saleStartTime && block.timestamp <= saleEndTime,

@@ -17,4 +17,18 @@ interface IPresale {
         uint256 amount,
         uint256 timestamp
     );
+
+    event ClaimStartTimeUpdated(
+        uint256 newValue,
+        uint256 timestamp
+    );
+
+    event TokensBought(
+        address indexed user,
+        bytes32 indexed currency,
+        uint256 amount,
+        uint256 totalCostInUsd,
+        uint256 totalCostInCurrency,
+        uint256 timestamp
+    );
 }
