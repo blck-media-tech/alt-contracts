@@ -24,7 +24,7 @@ module.exports = {
                 BigNumber.from("22740000000000000"),
             ],
         },
-        USDTStub: {
+        USDTMock: {
             initialSupply: "500000000000000000",
             _name: "Tether USD",
             _symbol: "USDT",

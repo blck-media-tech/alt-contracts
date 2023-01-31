@@ -7,8 +7,8 @@ import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "../interfaces/IChainlinkPriceFeed.sol";
-import "../interfaces/IPresale.sol";
+import "./interfaces/IChainlinkPriceFeed.sol";
+import "./interfaces/IPresale.sol";
 
 contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -224,6 +224,54 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
             ethPrice,
             block.timestamp
         );
+    }
+
+    /**
+     * @dev To buy into a presale using ETH
+     * @param _amount - Amount of tokens to buy
+     */
+    function buyWithEth2(uint256 _amount) external payable notBlacklisted checkSaleState(_amount) whenNotPaused {
+        uint256 ethPrice = calculateETHPrice(_amount);
+        require(msg.value >= ethPrice, "Not enough wei");
+        _sendValue(payable(owner()), ethPrice);
+        uint256 excess = msg.value - ethPrice;
+        if (excess > 0) _sendValue(payable(_msgSender()), excess);
+        totalTokensSold += _amount;
+        purchasedTokens[_msgSender()] += _amount * 1e18;
+        uint8 stageAfterPurchase = _getStageByTotalSoldAmount();
+        if (stageAfterPurchase>currentStage) currentStage = stageAfterPurchase;
+        emit TokensBought(
+            _msgSender(),
+            "ETH",
+            _amount,
+            calculateUSDTPrice(_amount),
+            ethPrice,
+            block.timestamp
+        );
+    }
+
+    /**
+     * @dev To buy into a presale using ETH
+     * @param _amount - Amount of tokens to buy
+     */
+    function buyWithEth3(uint256 _amount) external payable notBlacklisted checkSaleState(_amount) whenNotPaused {
+        uint256 ethPrice = calculateETHPrice(_amount);
+        require(msg.value >= ethPrice, "Not enough wei");
+        uint256 excess = msg.value - ethPrice;
+        totalTokensSold += _amount;
+        purchasedTokens[_msgSender()] += _amount * 1e18;
+        uint8 stageAfterPurchase = _getStageByTotalSoldAmount();
+        if (stageAfterPurchase>currentStage) currentStage = stageAfterPurchase;
+        emit TokensBought(
+            _msgSender(),
+            "ETH",
+            _amount,
+            calculateUSDTPrice(_amount),
+            ethPrice,
+            block.timestamp
+        );
+        _sendValue(payable(owner()), ethPrice);
+        if (excess > 0) _sendValue(payable(_msgSender()), excess);
     }
 
     /**

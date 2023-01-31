@@ -24,12 +24,12 @@ describe("ASIPresale", function () {
     }
 
     async function deployUSDTStubFixture(creator) {
-        const USDTFactory = await hre.ethers.getContractFactory("USDTStub");
+        const USDTFactory = await hre.ethers.getContractFactory("USDTMock");
         return await USDTFactory.connect(creator).deploy("50000000000000000", "Tether USD", "USDT", 6);
     }
 
     async function deployChainlinkPriceFeedStubFixture(creator) {
-        const ChainlinkPriceFeedFactory = await hre.ethers.getContractFactory("ChainlinkPriceFeedStub");
+        const ChainlinkPriceFeedFactory = await hre.ethers.getContractFactory("ChainlinkPriceFeedMock");
         return await ChainlinkPriceFeedFactory.connect(creator).deploy();
     }
 

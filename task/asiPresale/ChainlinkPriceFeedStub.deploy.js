@@ -1,6 +1,6 @@
 const { task } = require("hardhat/config");
 
-task("deploy:ChainlinkPriceFeedStub", "Deploys stub ChainlinkPriceFeed contract token").setAction(
+task("deploy:mock:ChainlinkPriceFeed", "Deploys stub ChainlinkPriceFeed contract token").setAction(
     async (taskArgs, hre) => {
         const ChainlinkPriceFeedStubArguments = {};
 
@@ -9,11 +9,11 @@ task("deploy:ChainlinkPriceFeedStub", "Deploys stub ChainlinkPriceFeed contract 
         const ChainlinkPriceFeedStubAddress = await hre.run("deployment", {
             network: hre.network.name,
             arguments: ChainlinkPriceFeedStubArguments,
-            contract: "ChainlinkPriceFeedStub",
+            contract: "ChainlinkPriceFeedMock",
         });
 
         await hre.run("verification", {
-            contract: "ChainlinkPriceFeedStub",
+            contract: "ChainlinkPriceFeedMock",
             address: ChainlinkPriceFeedStubAddress,
             constructorArguments: Object.values(ChainlinkPriceFeedStubArguments),
         });
