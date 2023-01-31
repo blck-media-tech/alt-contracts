@@ -331,7 +331,7 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
      * @notice Will return value in 1e18 format
      */
     function calculateETHPrice(uint256 _amount) public view returns (uint256 ethAmount) {
-        ethAmount = _calculateInternalCost(_amount) * 1e18  / getLatestPrice();
+        ethAmount = calculateInternalCost(_amount) * 1e18  / getLatestPrice();
     }
 
     /**
@@ -340,14 +340,15 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
      * @notice Will return value in 1e6 format
      */
     function calculateUSDTPrice(uint256 _amount) public view returns (uint256 usdtPrice) {
-        usdtPrice = _calculateInternalCost(_amount) / 1e12;
+        usdtPrice = calculateInternalCost(_amount) / 1e12;
     }
 
     /**
      * @dev Calculate cost for specified conditions
      * @param _amount - Amount of tokens to calculate price
+     * @notice Will return value in 1e18 format
      */
-    function _calculateInternalCost(uint256 _amount) internal view returns (uint256) {
+    function calculateInternalCost(uint256 _amount) public view returns (uint256) {
         require(_amount + totalTokensSold <= stageAmount[maxStageIndex], "Insufficient funds");
         return _calculateInternalCostForConditions(_amount, currentStage, totalTokensSold);
     }
