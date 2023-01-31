@@ -2,6 +2,7 @@ require("@nomicfoundation/hardhat-toolbox");
 require("dotenv").config();
 require("./task/subtasks");
 require("hardhat-abi-exporter");
+require("hardhat-gas-reporter");
 
 require("./task/asiToken/asiToken.deploy");
 require("./task/asiPresale/asiPresale.deploy");
@@ -58,4 +59,9 @@ module.exports = {
             format: "fullName",
         },
     ],
+    gasReporter: {
+        enabled: !!process.env.REPORT_GAS,
+        noColors: false,
+        showTimeSpent: true,
+    },
 };
