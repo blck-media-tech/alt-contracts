@@ -1,5 +1,11 @@
 {
   "name": "hardhat-project",
+  "scripts": {
+    "compile": "npx hardhat compile",
+    "test": "npx hardhat test",
+    "export-abi": "npx hardhat export-abi",
+    "clear-abi": "npx hardhat clear-abi"
+  },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^2.0.1",
     "eslint": "^8.31.0",
