@@ -666,36 +666,6 @@ describe("ASIPresale", function () {
                 await expect(configureClaimTx).to.be.revertedWith("Ownable: caller is not the owner");
             });
 
-            it("should revert if claim start time less than sale end time", async function () {
-                //Set values
-                const { presale, users, saleEndTime, ASI } = await deployPresaleFixture();
-                const tokensAmount = 100;
-
-                //Transfer tokens to presale contract
-                await ASI.connect(users.creator).transfer(presale.address, tokensAmount);
-
-                //Start claim
-                const configureClaimTx = presale.connect(users.presaleOwner).configureClaim(saleEndTime);
-
-                //Assert transaction was reverted
-                await expect(configureClaimTx).to.be.revertedWith("Invalid claim start time");
-            });
-
-            it("should revert if claim start time less than current block timestamp", async function () {
-                //Set values
-                const { presale, users, ASI } = await deployPresaleFixture();
-                const tokensAmount = 100;
-
-                //Transfer tokens to presale contract
-                await ASI.connect(users.creator).transfer(presale.address, tokensAmount);
-
-                //Start claim
-                const configureClaimTx = presale.connect(users.presaleOwner).configureClaim(0);
-
-                //Assert transaction was reverted
-                await expect(configureClaimTx).to.be.revertedWith("Invalid claim start time");
-            });
-
             it("should emit SaleStartTimeUpdated event", async function () {
                 //Set values
                 const { presale, users, saleEndTime, ASI } = await deployPresaleFixture();

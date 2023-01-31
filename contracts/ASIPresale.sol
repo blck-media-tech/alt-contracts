@@ -165,10 +165,7 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
      * @param _claimStartTime - claim start time
      * @notice Function also makes sure that presale have enough sale token balance
      */
-    function configureClaim(
-        uint256 _claimStartTime
-    ) external onlyOwner {
-        require(_claimStartTime >= block.timestamp && _claimStartTime > saleEndTime, "Invalid claim start time");
+    function configureClaim(uint256 _claimStartTime) external onlyOwner {
         require(IERC20(saleToken).balanceOf(address(this)) >= totalTokensSold * 1e18, "Not enough balance");
         claimStartTime = _claimStartTime;
         emit ClaimStartTimeUpdated(_claimStartTime, block.timestamp);
