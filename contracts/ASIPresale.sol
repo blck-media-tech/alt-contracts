@@ -312,7 +312,7 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
         uint256 amount = purchasedTokens[_msgSender()];
         require(amount > 0, "Nothing to claim");
         purchasedTokens[_msgSender()] -= amount;
-        IERC20(saleToken).transfer(_msgSender(), amount);
+        IERC20(saleToken).safeTransfer(_msgSender(), amount);
         emit TokensClaimed(_msgSender(), amount, block.timestamp);
     }
 
