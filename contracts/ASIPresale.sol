@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.17;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
 import "./interfaces/IChainlinkPriceFeed.sol";
 import "./interfaces/IPresale.sol";
 
@@ -22,7 +23,7 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
 
     uint256[4] public stageAmount;
     uint256[4] public stagePrice;
-    uint8 constant maxStageIndex = 3;
+    uint8 constant MAX_STAGE_INDEX = 3;
     uint8 public currentStage;
 
     IERC20 public USDTToken;
@@ -37,7 +38,7 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
             "Invalid time for buying"
         );
         require(amount > 0, "You should buy at least one token");
-        require(amount + totalTokensSold <= stageAmount[maxStageIndex], "Insufficient funds");
+        require(amount + totalTokensSold <= stageAmount[MAX_STAGE_INDEX], "Insufficient funds");
         _;
     }
 
@@ -64,7 +65,8 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
         uint256 _saleEndTime,
         uint256[4] memory _stageAmount,
         uint256[4] memory _stagePrice
-    ) {
+    )
+    {
         require(_oracle != address(0), "Zero aggregator address");
         require(_usdt != address(0), "Zero USDT address");
         require(_saleToken != address(0), "Zero sale token address");
@@ -113,7 +115,8 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
     function addToBlacklist(address[] calldata _users) external onlyOwner {
         uint256 usersAmount = _users.length;
         uint256 i = 0;
-        while(i<usersAmount) blacklist[_users[i++]] = true;
+        while(i<usersAmount)
+            blacklist[_users[i++]] = true;
     }
 
     /**
@@ -123,8 +126,10 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
     function removeFromBlacklist(address[] calldata _users) external onlyOwner {
         uint256 usersAmount = _users.length;
         uint256 i = 0;
-        while(i<usersAmount) blacklist[_users[i++]] = false;
+        while(i<usersAmount)
+            blacklist[_users[i++]] = false;
     }
+
     /**
      * @dev Returns total price of sold tokens
      * @param _tokenAddress - Address of token to resque
@@ -133,7 +138,6 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
     function resqueERC20(address _tokenAddress, uint256 _amount) external onlyOwner {
         IERC20(_tokenAddress).safeTransfer(_msgSender(), _amount);
     }
-
 
     /**
      * @dev To update the sale start time
@@ -146,7 +150,6 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
             block.timestamp
         );
     }
-
 
     /**
      * @dev To update the sale end time
@@ -172,34 +175,6 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Returns price for current step
-     */
-    function getCurrentPrice() external view returns (uint256) {
-        return stagePrice[currentStage];
-    }
-
-    /**
-     * @dev Returns amount of tokens sold on current step
-     */
-    function getSoldOnCurrentStage() external view returns (uint256 soldOnCurrentStage) {
-        soldOnCurrentStage = totalTokensSold - ((currentStage == 0)? 0 : stageAmount[currentStage]);
-    }
-
-    /**
-     * @dev Returns presale last stage token amount limit
-     */
-    function getTotalPresaleAmount() external view returns (uint256) {
-        return stageAmount[maxStageIndex];
-    }
-
-    /**
-     * @dev Returns total price of sold tokens
-     */
-    function totalSoldPrice() external view returns (uint256) {
-        return _calculateInternalCostForConditions(totalTokensSold, 0 ,0);
-    }
-
-    /**
      * @dev To buy into a presale using ETH
      * @param _amount - Amount of tokens to buy
      */
@@ -208,11 +183,13 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
         require(msg.value >= ethPrice, "Not enough wei");
         _sendValue(payable(owner()), ethPrice);
         uint256 excess = msg.value - ethPrice;
-        if (excess > 0) _sendValue(payable(_msgSender()), excess);
+        if (excess > 0)
+            _sendValue(payable(_msgSender()), excess);
         totalTokensSold += _amount;
         purchasedTokens[_msgSender()] += _amount * 1e18;
         uint8 stageAfterPurchase = _getStageByTotalSoldAmount();
-        if (stageAfterPurchase>currentStage) currentStage = stageAfterPurchase;
+        if (stageAfterPurchase>currentStage)
+            currentStage = stageAfterPurchase;
         emit TokensBought(
             _msgSender(),
             "ETH",
@@ -242,7 +219,8 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
         totalTokensSold += _amount;
         purchasedTokens[_msgSender()] += _amount * 1e18;
         uint8 stageAfterPurchase = _getStageByTotalSoldAmount();
-        if (stageAfterPurchase>currentStage) currentStage = stageAfterPurchase;
+        if (stageAfterPurchase>currentStage)
+            currentStage = stageAfterPurchase;
         emit TokensBought(
             _msgSender(),
             "USDT",
@@ -263,6 +241,34 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
         purchasedTokens[_msgSender()] -= amount;
         IERC20(saleToken).safeTransfer(_msgSender(), amount);
         emit TokensClaimed(_msgSender(), amount, block.timestamp);
+    }
+
+    /**
+     * @dev Returns price for current step
+     */
+    function getCurrentPrice() external view returns (uint256) {
+        return stagePrice[currentStage];
+    }
+
+    /**
+     * @dev Returns amount of tokens sold on current step
+     */
+    function getSoldOnCurrentStage() external view returns (uint256 soldOnCurrentStage) {
+        soldOnCurrentStage = totalTokensSold - ((currentStage == 0)? 0 : stageAmount[currentStage]);
+    }
+
+    /**
+     * @dev Returns presale last stage token amount limit
+     */
+    function getTotalPresaleAmount() external view returns (uint256) {
+        return stageAmount[MAX_STAGE_INDEX];
+    }
+
+    /**
+     * @dev Returns total price of sold tokens
+     */
+    function totalSoldPrice() external view returns (uint256) {
+        return _calculateInternalCostForConditions(totalTokensSold, 0 ,0);
     }
 
     /**
@@ -298,7 +304,7 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
      * @notice Will return value in 1e18 format
      */
     function calculateInternalCost(uint256 _amount) public view returns (uint256) {
-        require(_amount + totalTokensSold <= stageAmount[maxStageIndex], "Insufficient funds");
+        require(_amount + totalTokensSold <= stageAmount[MAX_STAGE_INDEX], "Insufficient funds");
         return _calculateInternalCostForConditions(_amount, currentStage, totalTokensSold);
     }
 
@@ -322,8 +328,7 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
     function _calculateInternalCostForConditions(uint256 _amount, uint256 _currentStage, uint256 _totalTokensSold) internal view returns (uint256 cost){
         if (_totalTokensSold + _amount <= stageAmount[_currentStage]) {
             cost = _amount * stagePrice[_currentStage];
-        }
-        else {
+        } else {
             uint256 currentStageAmount = stageAmount[_currentStage] - _totalTokensSold;
             uint256 nextStageAmount = _amount - currentStageAmount;
             cost = currentStageAmount * stagePrice[_currentStage] + _calculateInternalCostForConditions(nextStageAmount, _currentStage + 1, stageAmount[_currentStage]);
@@ -336,9 +341,10 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
      * @dev Calculate current step amount from total tokens sold amount
      */
     function _getStageByTotalSoldAmount() internal view returns (uint8) {
-        uint8 stageIndex = maxStageIndex;
+        uint8 stageIndex = MAX_STAGE_INDEX;
         while (stageIndex > 0) {
-            if (stageAmount[stageIndex - 1] < totalTokensSold) break;
+            if (stageAmount[stageIndex - 1] < totalTokensSold)
+                break;
             stageIndex -= 1;
         }
         return stageIndex;
