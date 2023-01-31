@@ -1,4 +1,8 @@
 const { BigNumber } = require("ethers");
+
+const stageAmount = ["40000000", "102500000", "175000000", "250000000"].map(BigNumber.from);
+const stagePrice = ["15000", "18750", "21010", "22740"].map(BigNumber.from);
+
 module.exports = {
     testnet: {
         ASIToken: {
@@ -11,18 +15,8 @@ module.exports = {
             USDTAddress: "0xBCef3C761f76C7c77De20ED393E19e61aa9D7a9a",
             saleStartTime: Math.floor(new Date().getTime() / 1000) + 60 * 60 * 24,
             saleEndTime: Math.floor(new Date().getTime() / 1000) + 60 * 60 * 24 * 2,
-            stageAmount: [
-                BigNumber.from("40000000"),
-                BigNumber.from("102500000"),
-                BigNumber.from("175000000"),
-                BigNumber.from("250000000"),
-            ],
-            stagePrice: [
-                BigNumber.from("15000000000000000"),
-                BigNumber.from("18750000000000000"),
-                BigNumber.from("21010000000000000"),
-                BigNumber.from("22740000000000000"),
-            ],
+            stageAmount,
+            stagePrice,
         },
         USDTMock: {
             initialSupply: "500000000000000000",

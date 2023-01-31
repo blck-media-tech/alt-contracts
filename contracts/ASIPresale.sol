@@ -1,8 +1,7 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -13,35 +12,88 @@ import "./interfaces/IPresale.sol";
 
 contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
-    
+
+    /**
+     * @dev Address of token contract
+     */
     address public immutable saleToken;
 
+    /**
+     * @dev Total amount of purchased tokens
+     */
     uint256 public totalTokensSold;
+
+    /**
+     * @dev Timestamp when purchased tokens claim starts
+     */
     uint256 public claimStartTime;
+
+    /**
+     * @dev Timestamp when presale starts
+     */
     uint256 public saleStartTime;
+
+    /**
+     * @dev Timestamp when presale ends
+     */
     uint256 public saleEndTime;
 
-    uint256[4] public stageAmount;
-    uint256[4] public stagePrice;
+    /**
+     * @dev Last stage index
+     */
     uint8 constant MAX_STAGE_INDEX = 3;
+
+    /**
+     * @dev Amount of totalTokensSold limits for each stage
+     */
+    uint256[4] public limitPerStage;
+
+
+    uint256[4] public pricePerStage; /// @dev Sale prices for each stage
+
+    /**
+     * @dev Index of current stage
+     */
     uint8 public currentStage;
 
+    /**
+     * @dev Address of USDT token
+     */
     IERC20 public USDTToken;
+
+    /**
+     * @dev Address of chainlink ETH/USD price feed
+     */
     IChainlinkPriceFeed public oracle;
 
+    /**
+     * @dev Stores the number of tokens purchased by each user that have not yet been claimed
+     */
     mapping(address => uint256) public purchasedTokens;
+
+    /**
+     * @dev Indicates whether the user is blacklisted or not
+     */
     mapping(address => bool) public blacklist;
 
-    modifier checkSaleState(uint256 amount) {
+    /**
+     * @dev Checks that it is now possible to purchase passed amount tokens
+     * @param amount - the number of tokens to verify the possibility of purchase
+     */
+    modifier verifyPurchase(uint256 amount) {
         require(
             block.timestamp >= saleStartTime && block.timestamp <= saleEndTime,
             "Invalid time for buying"
         );
-        require(amount > 0, "You should buy at least one token");
-        require(amount + totalTokensSold <= stageAmount[MAX_STAGE_INDEX], "Insufficient funds");
+        require(amount > 0, "Incorrect token amount");
+        require(amount + totalTokensSold <= limitPerStage[MAX_STAGE_INDEX], "Exceeded presale limit");
         _;
     }
 
+
+    /**
+     * @dev Verifies that the sender isn't blacklisted
+     */
     modifier notBlacklisted() {
         require(!blacklist[_msgSender()], "You are in blacklist");
         _;
@@ -49,13 +101,13 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
 
     /**
      * @dev Creates the contract
-     * @param _saleToken       - Address of presailing token
-     * @param _oracle          - Address of Chainlink ETH/USD price feed
-     * @param _usdt            - Address of USDT token
-     * @param _stageAmount     - Array of prices for each presale stage
-     * @param _stagePrice      - Array of totalTokenSold limit for each stage
-     * @param _saleStartTime   - Sale start time
-     * @param _saleEndTime     - Sale end time
+     * @param _saleToken      - Address of presailing token
+     * @param _oracle         - Address of Chainlink ETH/USD price feed
+     * @param _usdt           - Address of USDT token
+     * @param _limitPerStage  - Array of prices for each presale stage
+     * @param _pricePerStage  - Array of totalTokenSold limit for each stage
+     * @param _saleStartTime  - Sale start time
+     * @param _saleEndTime    - Sale end time
      */
     constructor(
         address _saleToken,
@@ -63,8 +115,8 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
         address _usdt,
         uint256 _saleStartTime,
         uint256 _saleEndTime,
-        uint256[4] memory _stageAmount,
-        uint256[4] memory _stagePrice
+        uint256[4] memory _limitPerStage,
+        uint256[4] memory _pricePerStage
     )
     {
         require(_oracle != address(0), "Zero aggregator address");
@@ -78,17 +130,13 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
         saleToken = _saleToken;
         oracle = IChainlinkPriceFeed(_oracle);
         USDTToken = IERC20(_usdt);
-        stageAmount = _stageAmount;
-        stagePrice = _stagePrice;
+        limitPerStage = _limitPerStage;
+        pricePerStage = _pricePerStage;
         saleStartTime = _saleStartTime;
         saleEndTime = _saleEndTime;
 
-        emit SaleStartTimeUpdated(
+        emit SaleTimeUpdated(
             _saleStartTime,
-            block.timestamp
-        );
-
-        emit SaleEndTimeUpdated(
             _saleEndTime,
             block.timestamp
         );
@@ -140,24 +188,17 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev To update the sale start time
+     * @dev To update the sale start and end times
      * @param _saleStartTime - New sales start time
+     * @param _saleEndTime - New sales end time
      */
-    function changeSaleStartTime(uint256 _saleStartTime) external onlyOwner {
-        saleStartTime = _saleStartTime;
-        emit SaleStartTimeUpdated(
+    function configureSaleTimeframe(uint256 _saleStartTime, uint256 _saleEndTime) external onlyOwner {
+        if(saleStartTime != _saleStartTime)
+            saleStartTime = _saleStartTime;
+        if(saleEndTime != _saleEndTime)
+            saleEndTime = _saleEndTime;
+        emit SaleTimeUpdated(
             _saleStartTime,
-            block.timestamp
-        );
-    }
-
-    /**
-     * @dev To update the sale end time
-     * @param _saleEndTime - sales New end time
-     */
-    function changeSaleEndTime(uint256 _saleEndTime) external onlyOwner {
-        saleEndTime = _saleEndTime;
-        emit SaleEndTimeUpdated(
             _saleEndTime,
             block.timestamp
         );
@@ -178,11 +219,11 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
      * @dev To buy into a presale using ETH
      * @param _amount - Amount of tokens to buy
      */
-    function buyWithEth(uint256 _amount) external payable notBlacklisted checkSaleState(_amount) whenNotPaused nonReentrant {
-        uint256 ethPrice = calculateETHPrice(_amount);
-        require(msg.value >= ethPrice, "Not enough wei");
-        _sendValue(payable(owner()), ethPrice);
-        uint256 excess = msg.value - ethPrice;
+    function buyWithEth(uint256 _amount) external payable notBlacklisted verifyPurchase(_amount) whenNotPaused nonReentrant {
+        uint256 priceInETH = getPriceInETH(_amount);
+        require(msg.value >= priceInETH, "Not enough ETH");
+        _sendValue(payable(owner()), priceInETH);
+        uint256 excess = msg.value - priceInETH;
         if (excess > 0)
             _sendValue(payable(_msgSender()), excess);
         totalTokensSold += _amount;
@@ -194,8 +235,8 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
             _msgSender(),
             "ETH",
             _amount,
-            calculateUSDTPrice(_amount),
-            ethPrice,
+            getPriceInUSDT(_amount),
+            priceInETH,
             block.timestamp
         );
     }
@@ -204,17 +245,17 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
      * @dev To buy into a presale using USDT
      * @param _amount - Amount of tokens to buy
      */
-    function buyWithUSDT(uint256 _amount) external notBlacklisted checkSaleState(_amount) whenNotPaused nonReentrant {
-        uint256 usdtPrice = calculateUSDTPrice(_amount);
+    function buyWithUSDT(uint256 _amount) external notBlacklisted verifyPurchase(_amount) whenNotPaused nonReentrant {
+        uint256 priceInUsdt = getPriceInUSDT(_amount);
         uint256 allowance = USDTToken.allowance(
             _msgSender(),
             address(this)
         );
-        require(usdtPrice <= allowance, "Make sure to add enough allowance");
+        require(priceInUsdt <= allowance, "Make sure to add enough allowance");
         USDTToken.safeTransferFrom(
                 _msgSender(),
                 owner(),
-                usdtPrice
+            priceInUsdt
         );
         totalTokensSold += _amount;
         purchasedTokens[_msgSender()] += _amount * 1e18;
@@ -225,8 +266,8 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
             _msgSender(),
             "USDT",
             _amount,
-            calculateUSDTPrice(_amount),
-            usdtPrice,
+            getPriceInUSDT(_amount),
+            priceInUsdt,
             block.timestamp
         );
     }
@@ -244,40 +285,31 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Returns price for current step
+     * @dev Returns price for current stage
      */
     function getCurrentPrice() external view returns (uint256) {
-        return stagePrice[currentStage];
+        return pricePerStage[currentStage];
     }
 
     /**
-     * @dev Returns amount of tokens sold on current step
+     * @dev Returns amount of tokens sold on current stage
      */
     function getSoldOnCurrentStage() external view returns (uint256 soldOnCurrentStage) {
-        soldOnCurrentStage = totalTokensSold - ((currentStage == 0)? 0 : stageAmount[currentStage]);
+        soldOnCurrentStage = totalTokensSold - ((currentStage == 0)? 0 : limitPerStage[currentStage]);
     }
 
     /**
      * @dev Returns presale last stage token amount limit
      */
     function getTotalPresaleAmount() external view returns (uint256) {
-        return stageAmount[MAX_STAGE_INDEX];
+        return limitPerStage[MAX_STAGE_INDEX];
     }
 
     /**
      * @dev Returns total price of sold tokens
      */
     function totalSoldPrice() external view returns (uint256) {
-        return _calculateInternalCostForConditions(totalTokensSold, 0 ,0);
-    }
-
-    /**
-     * @dev To get latest ethereum price in 10**18 format
-     * @notice Will return value in 1e18 format
-     */
-    function getLatestPrice() public view returns (uint256) {
-        (, int256 price, , ,) = oracle.latestRoundData();
-        return uint256(price * 1e10);
+        return _calculateCostInUSDTForConditions(totalTokensSold, 0, 0);
     }
 
     /**
@@ -285,27 +317,19 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
      * @param _amount - Amount of tokens to buy
      * @notice Will return value in 1e18 format
      */
-    function calculateETHPrice(uint256 _amount) public view returns (uint256 ethAmount) {
-        ethAmount = calculateInternalCost(_amount) * 1e18  / getLatestPrice();
+    function getPriceInETH(uint256 _amount) public view returns (uint256 ethAmount) {
+        (, int256 price, , ,) = oracle.latestRoundData();
+        ethAmount = getPriceInUSDT(_amount) * 1e20  / uint256(price);
     }
 
     /**
-     * @dev Helper function to calculate USDT price for given amount
-     * @param _amount No of tokens to buy
+     * @dev Calculate price in USDT
+     * @param _amount - Amount of tokens to calculate price
      * @notice Will return value in 1e6 format
      */
-    function calculateUSDTPrice(uint256 _amount) public view returns (uint256 usdtPrice) {
-        usdtPrice = calculateInternalCost(_amount) / 1e12;
-    }
-
-    /**
-     * @dev Calculate cost for specified conditions
-     * @param _amount - Amount of tokens to calculate price
-     * @notice Will return value in 1e18 format
-     */
-    function calculateInternalCost(uint256 _amount) public view returns (uint256) {
-        require(_amount + totalTokensSold <= stageAmount[MAX_STAGE_INDEX], "Insufficient funds");
-        return _calculateInternalCostForConditions(_amount, currentStage, totalTokensSold);
+    function getPriceInUSDT(uint256 _amount) public view returns (uint256) {
+        require(_amount + totalTokensSold <= limitPerStage[MAX_STAGE_INDEX], "Insufficient funds");
+        return _calculateCostInUSDTForConditions(_amount, currentStage, totalTokensSold);
     }
 
     /**
@@ -320,30 +344,31 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Recursively calculate cost for specified conditions
-     * @param _amount          - Amount of tokens to calculate price
-     * @param _currentStage     - Starting step to calculate price
-     * @param _totalTokensSold - Starting total token sold amount to calculate price
+     * @dev Recursively calculate USDT cost for specified conditions
+     * @param _amount           - Amount of tokens to calculate price
+     * @param _currentStage     - Starting stage to calculate price
+     * @param _totalTokensSold  - Starting total token sold amount to calculate price
      */
-    function _calculateInternalCostForConditions(uint256 _amount, uint256 _currentStage, uint256 _totalTokensSold) internal view returns (uint256 cost){
-        if (_totalTokensSold + _amount <= stageAmount[_currentStage]) {
-            cost = _amount * stagePrice[_currentStage];
+    function _calculateCostInUSDTForConditions(uint256 _amount, uint256 _currentStage, uint256 _totalTokensSold) internal view returns (uint256 cost){
+        if (_totalTokensSold + _amount <= limitPerStage[_currentStage]) {
+            cost = _amount * pricePerStage[_currentStage];
         } else {
-            uint256 currentStageAmount = stageAmount[_currentStage] - _totalTokensSold;
+            uint256 currentStageAmount = limitPerStage[_currentStage] - _totalTokensSold;
             uint256 nextStageAmount = _amount - currentStageAmount;
-            cost = currentStageAmount * stagePrice[_currentStage] + _calculateInternalCostForConditions(nextStageAmount, _currentStage + 1, stageAmount[_currentStage]);
+            cost = currentStageAmount * pricePerStage[_currentStage]
+                + _calculateCostInUSDTForConditions(nextStageAmount, _currentStage + 1, limitPerStage[_currentStage]);
         }
 
         return cost;
     }
 
     /**
-     * @dev Calculate current step amount from total tokens sold amount
+     * @dev Calculate current stage amount from total tokens sold amount
      */
     function _getStageByTotalSoldAmount() internal view returns (uint8) {
         uint8 stageIndex = MAX_STAGE_INDEX;
         while (stageIndex > 0) {
-            if (stageAmount[stageIndex - 1] < totalTokensSold)
+            if (limitPerStage[stageIndex - 1] < totalTokensSold)
                 break;
             stageIndex -= 1;
         }

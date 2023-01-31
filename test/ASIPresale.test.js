@@ -5,18 +5,8 @@ const { ZERO_ADDRESS, DAY_IN_SECONDS } = require("./consts");
 
 describe("ASIPresale", function () {
     //setup values
-    const stageAmount = [
-        BigNumber.from("40000000"),
-        BigNumber.from("102500000"),
-        BigNumber.from("175000000"),
-        BigNumber.from("250000000"),
-    ];
-    const stagePrice = [
-        BigNumber.from("15000000000000000"),
-        BigNumber.from("18750000000000000"),
-        BigNumber.from("21010000000000000"),
-        BigNumber.from("22740000000000000"),
-    ];
+    const stageAmount = ["40000000", "102500000", "175000000", "250000000"].map(BigNumber.from);
+    const stagePrice = ["15000", "18750", "21010", "22740"].map(BigNumber.from);
 
     async function deployASITokenFixture(creator) {
         const ASIFactory = await hre.ethers.getContractFactory("ASIToken");
@@ -336,18 +326,6 @@ describe("ASIPresale", function () {
             const block = await hre.ethers.provider.getBlock("latest");
             const saleStartTime = block.timestamp + DAY_IN_SECONDS;
             const saleEndTime = saleStartTime + DAY_IN_SECONDS;
-            const stageAmount = [
-                BigNumber.from("40000000"),
-                BigNumber.from("102500000"),
-                BigNumber.from("175000000"),
-                BigNumber.from("250000000"),
-            ];
-            const stagePrice = [
-                BigNumber.from("15000000000000000"),
-                BigNumber.from("18750000000000000"),
-                BigNumber.from("21010000000000000"),
-                BigNumber.from("22740000000000000"),
-            ];
 
             const [creator, presaleOwner, Alice] = await getSigners();
 
@@ -376,6 +354,7 @@ describe("ASIPresale", function () {
             return {
                 USDT,
                 ASI,
+                ChainlinkPriceFeed,
                 presale,
                 saleStartTime,
                 saleEndTime,
@@ -390,7 +369,7 @@ describe("ASIPresale", function () {
         }
 
         async function purchaseTokensFixture(contract, signer, amount) {
-            const priceInWei = await contract.connect(signer).calculateETHPrice(amount);
+            const priceInWei = await contract.connect(signer).getPriceInETH(amount);
             await contract.connect(signer).buyWithEth(amount, { value: priceInWei });
         }
 
@@ -500,29 +479,35 @@ describe("ASIPresale", function () {
             });
         });
 
-        describe("'changeSaleStartTime' function", function () {
+        describe("'configureSaleTimeframe' function", function () {
             it("should set sales start time", async function () {
                 //Set values
                 const { presale, users } = await deployPresaleFixture();
 
-                const saleStartTimeModifier = DAY_IN_SECONDS;
+                const saleTimeModifier = DAY_IN_SECONDS;
 
                 //Get sale start time before transaction
                 const saleStartTimeBefore = await presale.saleStartTime();
+                const saleEndTimeBefore = await presale.saleEndTime();
 
                 //Change sale start time
                 const changeSaleStartTimeTx = presale
                     .connect(users.presaleOwner)
-                    .changeSaleStartTime(saleStartTimeBefore.add(saleStartTimeModifier));
+                    .configureSaleTimeframe(
+                        saleStartTimeBefore.add(saleTimeModifier),
+                        saleEndTimeBefore.add(saleTimeModifier)
+                    );
 
                 //Assert transaction was successful
                 await expect(changeSaleStartTimeTx).not.to.be.reverted;
 
                 //Get sales start time after transaction
                 const saleStartTimeAfter = await presale.saleStartTime();
+                const saleEndTimeAfter = await presale.saleEndTime();
 
                 //Assert sale start time after transaction with expected
-                expect(saleStartTimeAfter).to.equal(saleStartTimeBefore.add(saleStartTimeModifier));
+                expect(saleStartTimeAfter).to.equal(saleStartTimeBefore.add(saleTimeModifier));
+                expect(saleEndTimeAfter).to.equal(saleEndTimeBefore.add(saleTimeModifier));
             });
 
             it("should revert if called not by the owner", async function () {
@@ -530,93 +515,37 @@ describe("ASIPresale", function () {
                 const { presale } = await deployPresaleFixture();
 
                 //Change sale start time
-                const changeSaleStartTimeTx = presale.changeSaleStartTime(0);
+                const changeSaleStartTimeTx = presale.configureSaleTimeframe(0, 0);
 
                 //Assert transaction is reverted
                 await expect(changeSaleStartTimeTx).to.be.revertedWith("Ownable: caller is not the owner");
             });
 
-            it("should emit SaleStartTimeUpdated event", async function () {
+            it("should emit SaleTimeUpdated event", async function () {
                 //Set values
                 const { presale, users } = await deployPresaleFixture();
 
-                const saleStartTimeModifier = DAY_IN_SECONDS;
+                const saleTimeModifier = DAY_IN_SECONDS;
 
                 //Get sale start time before transaction
                 const saleStartTimeBefore = await presale.saleStartTime();
+                const saleEndTimeBefore = await presale.saleEndTime();
 
                 //Change sale start time
                 const changeSaleStartTimeTx = presale
                     .connect(users.presaleOwner)
-                    .changeSaleStartTime(saleStartTimeBefore.add(saleStartTimeModifier));
+                    .configureSaleTimeframe(
+                        saleStartTimeBefore.add(saleTimeModifier),
+                        saleEndTimeBefore.add(saleTimeModifier).add(saleTimeModifier)
+                    );
 
                 //Assert transaction was successful
                 await expect(changeSaleStartTimeTx).not.to.be.reverted;
 
                 //Assert SaleStartTimeUpdated event was emitted
                 expect(changeSaleStartTimeTx)
-                    .to.emit(presale, "SaleStartTimeUpdated")
-                    .withArgs(saleStartTimeBefore.add(saleStartTimeModifier));
-            });
-        });
-
-        describe("'changeSaleEndTime' function", function () {
-            it("should set sales start time", async function () {
-                //Set values
-                const { presale, users } = await deployPresaleFixture();
-
-                const saleEndTimeModifier = DAY_IN_SECONDS;
-
-                //Get sale end time before transaction
-                const saleEndTimeBefore = await presale.saleEndTime();
-
-                //Change sale end time
-                const changeSaleEndTimeTx = presale
-                    .connect(users.presaleOwner)
-                    .changeSaleEndTime(saleEndTimeBefore.add(saleEndTimeModifier));
-
-                //Assert transaction was successful
-                await expect(changeSaleEndTimeTx).not.to.be.reverted;
-
-                //Get sale end time after transaction
-                const saleEndTimeAfter = await presale.saleEndTime();
-
-                //Assert sale end time after transaction with expected
-                expect(saleEndTimeAfter).to.equal(saleEndTimeBefore.add(saleEndTimeModifier));
-            });
-
-            it("should revert if called not by the owner", async function () {
-                //Set values
-                const { presale } = await deployPresaleFixture();
-
-                //Change sale start time
-                const changeSaleEndTimeTx = presale.changeSaleEndTime(0);
-
-                //Assert transaction is reverted
-                await expect(changeSaleEndTimeTx).to.be.revertedWith("Ownable: caller is not the owner");
-            });
-
-            it("should emit SaleStartTimeUpdated event", async function () {
-                //Set values
-                const { presale, users } = await deployPresaleFixture();
-
-                const saleStartTimeModifier = DAY_IN_SECONDS;
-
-                //Get sales start time before transaction
-                const saleStartTimeBefore = await presale.saleStartTime();
-
-                //Change sale start time
-                const changeSaleStartTimeTx = presale
-                    .connect(users.presaleOwner)
-                    .changeSaleStartTime(saleStartTimeBefore.add(saleStartTimeModifier));
-
-                //Assert transaction was successful
-                await expect(changeSaleStartTimeTx).not.to.be.reverted;
-
-                //Assert SaleEndTimeUpdated event was emitted
-                expect(changeSaleStartTimeTx)
-                    .to.emit(presale, "SaleEndTimeUpdated")
-                    .withArgs(saleStartTimeBefore.add(saleStartTimeModifier));
+                    .to.emit(presale, "SaleTimeUpdated")
+                    .withArgs(saleStartTimeBefore.add(saleTimeModifier), saleEndTimeBefore.add(saleTimeModifier));
             });
         });
 
@@ -800,7 +729,7 @@ describe("ASIPresale", function () {
                 await timeTravelFixture(saleStartTime + 1);
 
                 //Get wei price
-                const weiPrice = await presale.calculateETHPrice(tokensToPurchase);
+                const weiPrice = await presale.getPriceInETH(tokensToPurchase);
 
                 //Get values before transaction
                 const purchaseTokensAmountBefore = await presale.purchasedTokens(users.creator.address);
@@ -830,7 +759,7 @@ describe("ASIPresale", function () {
                 const tokensToPurchase = 1000;
 
                 //Get wei price
-                const weiPrice = await presale.calculateETHPrice(tokensToPurchase);
+                const weiPrice = await presale.getPriceInETH(tokensToPurchase);
 
                 //Buy with eth
                 const buyWithEthTx = presale.connect(users.creator).buyWithEth(tokensToPurchase, { value: weiPrice });
@@ -848,7 +777,7 @@ describe("ASIPresale", function () {
                 await timeTravelFixture(saleStartTime + 1);
 
                 //Get wei price
-                const weiPrice = await presale.calculateETHPrice(tokensToPurchase);
+                const weiPrice = await presale.getPriceInETH(tokensToPurchase);
 
                 //Buy with eth
                 const buyWithEthTx = presale
@@ -856,7 +785,7 @@ describe("ASIPresale", function () {
                     .buyWithEth(tokensToPurchase, { value: weiPrice.sub(1) });
 
                 //Assert transaction was reverted
-                await expect(buyWithEthTx).to.be.revertedWith("Not enough wei");
+                await expect(buyWithEthTx).to.be.revertedWith("Not enough ETH");
             });
 
             it("should revert if try to buy more tokens than presale limit", async function () {
@@ -868,7 +797,7 @@ describe("ASIPresale", function () {
                 await timeTravelFixture(saleStartTime + 1);
 
                 //Get wei price
-                const weiPrice = await presale.calculateETHPrice(tokensToPurchase);
+                const weiPrice = await presale.getPriceInETH(tokensToPurchase);
 
                 //Buy with eth
                 const buyWithEthTx = presale
@@ -876,7 +805,7 @@ describe("ASIPresale", function () {
                     .buyWithEth(tokensToPurchase + 1, { value: weiPrice });
 
                 //Assert transaction was reverted
-                await expect(buyWithEthTx).to.be.revertedWith("Insufficient funds");
+                await expect(buyWithEthTx).to.be.revertedWith("Exceeded presale limit");
             });
 
             it("should revert if try to buy 0 tokens", async function () {
@@ -888,13 +817,13 @@ describe("ASIPresale", function () {
                 await timeTravelFixture(saleStartTime + 1);
 
                 //Get wei price
-                const weiPrice = await presale.calculateETHPrice(tokensToPurchase);
+                const weiPrice = await presale.getPriceInETH(tokensToPurchase);
 
                 //Buy with eth
                 const buyWithEthTx = presale.connect(users.creator).buyWithEth(tokensToPurchase, { value: weiPrice });
 
                 //Assert transaction was reverted
-                await expect(buyWithEthTx).to.be.revertedWith("You should buy at least one token");
+                await expect(buyWithEthTx).to.be.revertedWith("Incorrect token amount");
             });
 
             it("should emit TokensBought event", async function () {
@@ -906,8 +835,8 @@ describe("ASIPresale", function () {
                 await timeTravelFixture(saleStartTime + 1);
 
                 //Get wei price
-                const weiPrice = await presale.calculateETHPrice(tokensToPurchase);
-                const USDTPrice = await presale.calculateUSDTPrice(tokensToPurchase);
+                const weiPrice = await presale.getPriceInETH(tokensToPurchase);
+                const USDTPrice = await presale.getPriceInUSDT(tokensToPurchase);
 
                 //Buy with eth
                 const buyWithEthTx = presale.connect(users.creator).buyWithEth(tokensToPurchase, { value: weiPrice });
@@ -932,7 +861,7 @@ describe("ASIPresale", function () {
                 await timeTravelFixture(saleStartTime + 1);
 
                 //Get usdt price
-                const USDTPrice = await presale.calculateUSDTPrice(tokensToPurchase);
+                const USDTPrice = await presale.getPriceInUSDT(tokensToPurchase);
 
                 //Add allowance to contract
                 await USDT.connect(users.creator).approve(presale.address, USDTPrice);
@@ -965,7 +894,7 @@ describe("ASIPresale", function () {
                 const tokensToPurchase = 1000;
 
                 //Get usdt price
-                const USDTPrice = await presale.calculateUSDTPrice(tokensToPurchase);
+                const USDTPrice = await presale.getPriceInUSDT(tokensToPurchase);
 
                 //Add allowance to contract
                 await USDT.connect(users.creator).approve(presale.address, USDTPrice);
@@ -1001,7 +930,7 @@ describe("ASIPresale", function () {
                 await timeTravelFixture(saleStartTime + 1);
 
                 //Get usdt price
-                const USDTPrice = await presale.calculateUSDTPrice(tokensToPurchase);
+                const USDTPrice = await presale.getPriceInUSDT(tokensToPurchase);
 
                 //Add allowance to contract
                 await USDT.connect(users.creator).approve(presale.address, USDTPrice);
@@ -1022,7 +951,7 @@ describe("ASIPresale", function () {
                 await timeTravelFixture(saleStartTime + 1);
 
                 //Get usdt price
-                const USDTPrice = await presale.calculateUSDTPrice(tokensToPurchase);
+                const USDTPrice = await presale.getPriceInUSDT(tokensToPurchase);
 
                 //Add allowance to contract
                 await USDT.connect(users.creator).approve(presale.address, USDTPrice);
@@ -1031,7 +960,7 @@ describe("ASIPresale", function () {
                 const buyWithUSDTTx = presale.connect(users.creator).buyWithUSDT(tokensToPurchase);
 
                 //Assert transaction was reverted
-                await expect(buyWithUSDTTx).to.be.revertedWith("You should buy at least one token");
+                await expect(buyWithUSDTTx).to.be.revertedWith("Incorrect token amount");
             });
 
             it("should emit TokensBought event", async function () {
@@ -1043,7 +972,7 @@ describe("ASIPresale", function () {
                 await timeTravelFixture(saleStartTime + 1);
 
                 //Get usdt price
-                const USDTPrice = await presale.calculateUSDTPrice(tokensToPurchase);
+                const USDTPrice = await presale.getPriceInUSDT(tokensToPurchase);
 
                 //Add allowance to contract
                 await USDT.connect(users.creator).approve(presale.address, USDTPrice);
@@ -1257,46 +1186,48 @@ describe("ASIPresale", function () {
             });
         });
 
-        describe("'calculateETHPrice' function", function () {
+        describe("'getPriceInETH' function", function () {
             it("should calculate correct wei price", async function () {
                 //Set values
-                const { presale, stagePrice } = await deployPresaleFixture();
+                const { presale, stagePrice, ChainlinkPriceFeed } = await deployPresaleFixture();
                 const tokensToPurchase = 1000;
+
+                const latestPrice = await ChainlinkPriceFeed.latestRoundData();
 
                 //calculate expected price
                 const expectedPrice = stagePrice[0]
                     .mul(tokensToPurchase)
-                    .mul(BigNumber.from(10).pow(18))
-                    .div(await presale.getLatestPrice());
+                    .mul(BigNumber.from(10).pow(20))
+                    .div(latestPrice[1]);
 
                 //Calculate wei price
-                const calculateETHPriceTx = presale.calculateETHPrice(tokensToPurchase);
+                const getPriceInETHTx = presale.getPriceInETH(tokensToPurchase);
 
                 //Assert transaction was successful
-                await expect(calculateETHPriceTx).not.to.be.reverted;
+                await expect(getPriceInETHTx).not.to.be.reverted;
 
                 //Assert price with expected
-                expect(await calculateETHPriceTx).to.equal(expectedPrice);
+                expect(await getPriceInETHTx).to.equal(expectedPrice);
             });
         });
 
-        describe("'calculateUSDTPrice' function", function () {
+        describe("'getPriceInUSDT' function", function () {
             it("should calculate correct USDT price", async function () {
                 //Set values
                 const { presale, stagePrice } = await deployPresaleFixture();
                 const tokensToPurchase = 1000;
 
                 //calculate expected price
-                const expectedPrice = stagePrice[0].mul(tokensToPurchase).div(BigNumber.from(10).pow(12));
+                const expectedPrice = stagePrice[0].mul(tokensToPurchase);
 
                 //Calculate USDT price
-                const calculateUSDTPriceTx = presale.calculateUSDTPrice(tokensToPurchase);
+                const getPriceInUSDTTx = presale.getPriceInUSDT(tokensToPurchase);
 
                 //Assert transaction was successful
-                await expect(calculateUSDTPriceTx).not.to.be.reverted;
+                await expect(getPriceInUSDTTx).not.to.be.reverted;
 
                 //Assert price with expected
-                expect(await calculateUSDTPriceTx).to.equal(expectedPrice);
+                expect(await getPriceInUSDTTx).to.equal(expectedPrice);
             });
         });
     });

@@ -2,13 +2,9 @@
 pragma solidity ^0.8.17;
 
 interface IPresale {
-    event SaleStartTimeUpdated(
-        uint256 newValue,
-        uint256 timestamp
-    );
-
-    event SaleEndTimeUpdated(
-        uint256 newValue,
+    event SaleTimeUpdated(
+        uint256 saleStartTime,
+        uint256 saleEndTime,
         uint256 timestamp
     );
 
