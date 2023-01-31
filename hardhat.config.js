@@ -1,6 +1,7 @@
 require("@nomicfoundation/hardhat-toolbox");
 require("dotenv").config();
 require("./task/subtasks");
+require("hardhat-abi-exporter");
 
 require("./task/asiToken/asiToken.deploy");
 require("./task/asiPresale/asiPresale.deploy");
@@ -37,4 +38,24 @@ module.exports = {
             url: "https://eth.llamarpc.com",
         },
     },
+    abiExporter: [
+        {
+            runOnCompile: true,
+            clear: true,
+            path: "./abi/json",
+            format: "json",
+        },
+        {
+            runOnCompile: true,
+            clear: true,
+            path: "./abi/minimal",
+            format: "minimal",
+        },
+        {
+            runOnCompile: true,
+            clear: true,
+            path: "./abi/fullName",
+            format: "fullName",
+        },
+    ],
 };
