@@ -13,10 +13,11 @@ contract ASIToken is ERC20Capped, Ownable {
         _mint(msg.sender, _initialSupply * 10**decimals());
     }
 
-    function burn(uint256 _amount) public virtual {
+    function burn(uint256 _amount) public {
         _burn(msg.sender, _amount);
     }
 
+    /// @notice Contract is still ERC20Capped
     function mint(address _to, uint256 _amount) public onlyOwner {
         _mint(_to, _amount);
     }

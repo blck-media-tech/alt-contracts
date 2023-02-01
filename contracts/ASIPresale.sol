@@ -49,7 +49,11 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
     uint256[4] public limitPerStage;
 
 
-    uint256[4] public pricePerStage; /// @dev Sale prices for each stage
+
+    /**
+     * @dev Sale prices for each stage
+     */
+    uint256[4] public pricePerStage;
 
     /**
      * @dev Index of current stage
