@@ -1,0 +1,29 @@
+{
+  "name": "hardhat-project",
+  "scripts": {
+    "compile": "npx hardhat compile",
+    "test": "npx hardhat test",
+    "export-abi": "npx hardhat export-abi",
+    "clear-abi": "npx hardhat clear-abi"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^2.0.1",
+    "eslint": "^8.31.0",
+    "eslint-config-prettier": "^8.6.0",
+    "eslint-plugin-mocha": "^10.1.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "hardhat": "^2.12.6",
+    "nyc": "^15.1.0",
+    "prettier": "^2.8.2",
+    "prettier-plugin-solidity": "^1.1.1"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.8.0",
+    "chai": "^4.3.7",
+    "dotenv": "^16.0.3",
+    "ethers": "^5.7.2",
+    "hardhat-abi-exporter": "^2.10.1",
+    "hardhat-gas-reporter": "^1.0.9",
+    "mocha": "^10.2.0"
+  }
+}
