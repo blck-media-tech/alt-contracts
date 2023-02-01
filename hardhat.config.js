@@ -14,10 +14,14 @@ module.exports = {
     solidity: {
         compilers: [
             {
-                version: "0.4.17",
+                version: "0.8.17",
+                optimizer: {
+                    enabled: true,
+                    runs: 200,
+                },
             },
             {
-                version: "0.8.17",
+                version: "0.4.17",
             },
         ],
     },
@@ -51,12 +55,6 @@ module.exports = {
             clear: true,
             path: "./abi/minimal",
             format: "minimal",
-        },
-        {
-            runOnCompile: true,
-            clear: true,
-            path: "./abi/fullName",
-            format: "fullName",
         },
     ],
     gasReporter: {

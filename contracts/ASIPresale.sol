@@ -309,7 +309,7 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
      * @dev Returns total price of sold tokens
      */
     function totalSoldPrice() external view returns (uint256) {
-        return _calculateCostInUSDTForConditions(totalTokensSold, 0, 0);
+        return _calculatePriceInUSDTForConditions(totalTokensSold, 0, 0);
     }
 
     /**
@@ -318,8 +318,8 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
      * @notice Will return value in 1e18 format
      */
     function getPriceInETH(uint256 _amount) public view returns (uint256 ethAmount) {
-        (, int256 price, , ,) = oracle.latestRoundData();
-        ethAmount = getPriceInUSDT(_amount) * 1e20  / uint256(price);
+        (, int256 price, , ,) = oracle.latestRoundData();//Chainlink oracle is trusted source of truth, so price will always be positive
+        ethAmount = getPriceInUSDT(_amount) * 1e20  / uint256(price);//We need 1e20 to get resulting value in wei(1e18)
     }
 
     /**
@@ -329,7 +329,7 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
      */
     function getPriceInUSDT(uint256 _amount) public view returns (uint256) {
         require(_amount + totalTokensSold <= limitPerStage[MAX_STAGE_INDEX], "Insufficient funds");
-        return _calculateCostInUSDTForConditions(_amount, currentStage, totalTokensSold);
+        return _calculatePriceInUSDTForConditions(_amount, currentStage, totalTokensSold);
     }
 
     /**
@@ -349,14 +349,14 @@ contract ASIPresale is IPresale, Pausable, Ownable, ReentrancyGuard {
      * @param _currentStage     - Starting stage to calculate price
      * @param _totalTokensSold  - Starting total token sold amount to calculate price
      */
-    function _calculateCostInUSDTForConditions(uint256 _amount, uint256 _currentStage, uint256 _totalTokensSold) internal view returns (uint256 cost){
+    function _calculatePriceInUSDTForConditions(uint256 _amount, uint256 _currentStage, uint256 _totalTokensSold) internal view returns (uint256 cost){
         if (_totalTokensSold + _amount <= limitPerStage[_currentStage]) {
             cost = _amount * pricePerStage[_currentStage];
         } else {
             uint256 currentStageAmount = limitPerStage[_currentStage] - _totalTokensSold;
             uint256 nextStageAmount = _amount - currentStageAmount;
             cost = currentStageAmount * pricePerStage[_currentStage]
-                + _calculateCostInUSDTForConditions(nextStageAmount, _currentStage + 1, limitPerStage[_currentStage]);
+                + _calculatePriceInUSDTForConditions(nextStageAmount, _currentStage + 1, limitPerStage[_currentStage]);
         }
 
         return cost;
