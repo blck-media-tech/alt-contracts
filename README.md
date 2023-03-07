@@ -11,7 +11,7 @@ AltSignals was founded in 2017. The creation of the AltSignals brand was initiat
 
 [![whitepaper](./assets/Button.png)](./assets/whitepaper.pdf)
 
-![solidProof](./assets/Frame%2014.png)
+[![solidProof](./assets/Frame%2014.png)](https://github.com/solidproof/projects/tree/main/AltSignals)
 
 ## Our media
 [//]: # ([![LinkedIn]&#40;./assets/Frame%2010.png&#41;]&#40;&#41;)
